@@ -1,0 +1,13 @@
+# Godot 4: cache e file generati dall'editor
+.godot/
+/android/
+
+# Build esportate
+/builds/
+
+# File temporanei e di backup
+*.tmp
+*.blend1
+*.blend2
+.DS_Store
+Thumbs.db
