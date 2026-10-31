@@ -121,9 +121,9 @@ func _after_move(velocity_before_move: Vector3) -> void:
 			# Travolge gli altri zombie spingendoli di lato.
 			var away := _flat(other.global_position - global_position).normalized()
 			other.apply_knockback((away + _charge_direction) * 6.0 + Vector3.UP * 4.0, 0.0, self)
-		elif other is DestructibleBlocks:
+		elif DestructibleBlocks.from_collider(other):
 			# Un muro di blocchi non lo ferma: lo sfonda e continua a correre.
-			other.damage_sphere(collision.get_position(), 1.6, charge_structure_damage, charge_speed * 0.6)
+			DestructibleBlocks.from_collider(other).damage_sphere(collision.get_position(), 1.6, charge_structure_damage, charge_speed * 0.6)
 		elif collision.get_normal().y < 0.5 and collision.get_normal().dot(_charge_direction) < -0.5 \
 				and not other is FpsController:
 			# Dritto contro un muro: resta intontito.

@@ -1,25 +1,26 @@
 @tool
 class_name DestructibleBlocks
-extends StaticBody3D
+extends Node3D
 ## Struttura distruttibile fatta di blocchi: muri, colonne, coperture.
 ##
 ## Si piazza nell'editor e si dimensiona con size: i blocchi si generano da
 ## soli (e si vedono già nell'editor). Le granate, i pugni, il Bestione in
 ## carica e gli zombie scaraventati contro la struttura rompono i blocchi; i
-## blocchi rimasti senza appoggio crollano. I pezzi diventano detriti fisici
-## che poi svaniscono. I colpi delle armi da fuoco non la scalfiscono.
-## Il punto di origine è al centro della base.
+## blocchi rimasti senza appoggio crollano. I pezzi volano come detriti fisici
+## e, quando si fermano, restano a terra per sempre come macerie (RubbleField).
+## I colpi delle armi da fuoco non la scalfiscono.
+## Il punto di origine è al centro della base. Le collisioni sono divise in
+## pezzi da CHUNK blocchi per lato (corpi figli): quando salta un blocco si
+## ricostruisce solo il suo pezzo e non tutta la struttura.
 ## Predisposto per la rete: in multiplayer i danni li deciderà l'host e ai
 ## client basterà ricevere quali blocchi sono saltati.
 
 ## Mondo: la struttura protegge come un muro normale finché sta in piedi.
 const LAYER_WORLD := 1
-## Detriti: urtano solo il mondo e tra loro, non giocatori e zombie.
+## Detriti: urtano solo il mondo, non giocatori, zombie e altri detriti.
 const LAYER_DEBRIS := 8
-## Detriti presenti al massimo in tutto il livello, per non appesantire la fisica.
-const MAX_DEBRIS := 80
-
-static var _debris_alive := 0
+## Blocchi per lato di ogni pezzo di collisione.
+const CHUNK := 4
 
 ## Dimensioni della struttura, in metri.
 @export var size := Vector3(4.0, 3.0, 0.5):
@@ -27,7 +28,7 @@ static var _debris_alive := 0
 		size = value
 		_rebuild()
 ## Lato di ogni blocco, in metri.
-@export_range(0.25, 2.0, 0.05) var block_size := 0.5:
+@export_range(0.1, 2.0, 0.05) var block_size := 0.25:
 	set(value):
 		block_size = value
 		_rebuild()
@@ -55,23 +56,31 @@ static var _debris_alive := 0
 @export var anchored_top := false
 
 @export_group("Detriti")
-## Secondi prima che un detrito sparisca.
-@export var debris_lifetime := 3.0
+## Pezzi lanciati al massimo da un singolo crollo: oltre questo numero gli altri
+## si polverizzano in una nuvola di polvere, per non appesantire la fisica.
+@export var max_debris_per_break := 100
 
 var _counts := Vector3i.ONE
 var _alive := PackedByteArray()
 var _health := PackedFloat32Array()
 var _shapes: Array[CollisionShape3D] = []
+var _chunks: Array[StaticBody3D] = []
 var _multimesh := MultiMesh.new()
 var _material := StandardMaterial3D.new()
 var _visual := MultiMeshInstance3D.new()
 
 
 func _ready() -> void:
-	collision_layer = LAYER_WORLD
 	if not Engine.is_editor_hint():
 		add_to_group("destructibles")
 	_rebuild()
+
+
+## La struttura a cui appartiene il corpo colpito, o null se non è distruttibile.
+static func from_collider(collider: Object) -> DestructibleBlocks:
+	if collider is Node and collider.get_parent() is DestructibleBlocks:
+		return collider.get_parent()
+	return null
 
 
 ## Quanti blocchi sono ancora in piedi.
@@ -89,15 +98,21 @@ func block_count() -> int:
 func damage_sphere(center: Vector3, radius: float, amount: float, push_speed := 6.0) -> int:
 	var local_center := to_local(center)
 	var broken: Array[int] = []
-	for i in _alive.size():
-		if _alive[i] == 0:
-			continue
-		var distance := maxf(_block_center(i).distance_to(local_center) - block_size * 0.5, 0.0)
-		if distance > radius:
-			continue
-		_health[i] -= amount * (1.0 - distance / radius)
-		if _health[i] <= 0.0:
-			broken.append(i)
+	# Si controllano solo le celle nel cubo attorno al raggio, non tutta la struttura.
+	var low := _cell_at(local_center - Vector3.ONE * (radius + block_size))
+	var high := _cell_at(local_center + Vector3.ONE * (radius + block_size))
+	for z in range(low.z, high.z + 1):
+		for y in range(low.y, high.y + 1):
+			for x in range(low.x, high.x + 1):
+				var i := _index(Vector3i(x, y, z))
+				if _alive[i] == 0:
+					continue
+				var distance := maxf(_block_center(i).distance_to(local_center) - block_size * 0.5, 0.0)
+				if distance > radius:
+					continue
+				_health[i] -= amount * (1.0 - distance / radius)
+				if _health[i] <= 0.0:
+					broken.append(i)
 	_break(broken, center, push_speed)
 	return broken.size()
 
@@ -163,40 +178,65 @@ func _rebuild() -> void:
 	for i in total:
 		_multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY, _block_center(i)))
 		var tint := 1.0 + random.randf_range(-color_variation, color_variation)
-		_multimesh.set_instance_color(i, Color(color.r * tint, color.g * tint, color.b * tint))
+		# I colori delle istanze vengono letti come lineari: si convertono, così il
+		# muro ha lo stesso colore scelto nell'Inspector (e dei suoi detriti).
+		_multimesh.set_instance_color(i, Color(color.r * tint, color.g * tint, color.b * tint).srgb_to_linear())
 	_visual.multimesh = _multimesh
 	if _visual.get_parent() == null:
 		add_child(_visual)
 
-	for shape in _shapes:
-		shape.queue_free()
+	for chunk in _chunks:
+		chunk.queue_free()
+	_chunks.clear()
 	_shapes.clear()
 	# Nell'editor bastano i blocchi da vedere; le collisioni servono solo in gioco.
 	if Engine.is_editor_hint():
 		return
+	var chunk_counts := Vector3i(ceili(_counts.x / float(CHUNK)), ceili(_counts.y / float(CHUNK)),
+			ceili(_counts.z / float(CHUNK)))
+	for c in chunk_counts.x * chunk_counts.y * chunk_counts.z:
+		var chunk := StaticBody3D.new()
+		chunk.collision_layer = LAYER_WORLD
+		add_child(chunk)
+		_chunks.append(chunk)
 	var block_shape := BoxShape3D.new()
 	block_shape.size = Vector3.ONE * block_size
 	for i in total:
+		var cell := _cell(i) / CHUNK
 		var shape := CollisionShape3D.new()
 		shape.shape = block_shape
 		shape.position = _block_center(i)
-		add_child(shape)
+		_chunks[cell.x + cell.y * chunk_counts.x + cell.z * chunk_counts.x * chunk_counts.y].add_child(shape)
 		_shapes.append(shape)
 
 
 ## Toglie i blocchi indicati, fa crollare quelli rimasti senza appoggio e
-## trasforma tutto in detriti.
+## trasforma tutto in detriti (oltre il limite, in polvere).
 func _break(indices: Array[int], origin: Vector3, push_speed: float) -> void:
 	if indices.is_empty():
 		return
+	var budget := max_debris_per_break
+	var dust_at := Vector3.ZERO
+	var dust_count := 0
 	for i in indices:
 		_remove_block(i)
 		var center := to_global(_block_center(i))
 		var away := (center - origin).normalized() if center.distance_to(origin) > 0.01 else Vector3.UP
-		_spawn_debris(center, away * push_speed + Vector3.UP * randf_range(1.0, 3.0))
+		if budget > 0 and _spawn_debris(center, away * push_speed + Vector3.UP * randf_range(1.0, 3.0)):
+			budget -= 1
+		else:
+			dust_at += center
+			dust_count += 1
 	for i in _unsupported_blocks():
 		_remove_block(i)
-		_spawn_debris(to_global(_block_center(i)), Vector3.ZERO)
+		var center := to_global(_block_center(i))
+		if budget > 0 and _spawn_debris(center, Vector3.ZERO):
+			budget -= 1
+		else:
+			dust_at += center
+			dust_count += 1
+	if dust_count > 0:
+		_spawn_dust(dust_at / dust_count, dust_count)
 	CombatEvents.bus.terrain_changed.emit(self)
 
 
@@ -237,39 +277,38 @@ func _unsupported_blocks() -> Array[int]:
 	return loose
 
 
-func _spawn_debris(at: Vector3, velocity: Vector3) -> void:
-	if _debris_alive >= MAX_DEBRIS or not is_inside_tree():
-		return
-	_debris_alive += 1
-	var debris := RigidBody3D.new()
-	debris.collision_layer = LAYER_DEBRIS
-	debris.collision_mask = LAYER_WORLD | LAYER_DEBRIS
-	debris.mass = 2.0
-	var shape := CollisionShape3D.new()
-	shape.shape = BoxShape3D.new()
-	shape.shape.size = Vector3.ONE * block_size * 0.85
-	debris.add_child(shape)
-	var mesh := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = shape.shape.size
-	var debris_material := StandardMaterial3D.new()
-	debris_material.albedo_color = color
-	box.material = debris_material
-	mesh.mesh = box
-	debris.add_child(mesh)
-	get_tree().current_scene.add_child(debris)
-	debris.global_transform = Transform3D(global_basis, at)
-	debris.linear_velocity = velocity
-	debris.angular_velocity = Vector3(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
-	debris.tree_exited.connect(DestructibleBlocks._release_debris)
-	var tween := debris.create_tween()
-	tween.tween_interval(debris_lifetime * randf_range(0.8, 1.2))
-	tween.tween_property(mesh, "scale", Vector3.ONE * 0.01, 0.4)
-	tween.tween_callback(debris.queue_free)
+func _spawn_debris(at: Vector3, velocity: Vector3) -> bool:
+	if not is_inside_tree():
+		return false
+	var piece_color := color * (1.0 + randf_range(-color_variation, color_variation))
+	piece_color.a = 1.0
+	return RubbleField.of(self).spawn(Transform3D(global_basis, at), block_size * 0.9, piece_color, velocity)
 
 
-static func _release_debris() -> void:
-	_debris_alive -= 1
+## Nuvola di polvere per i blocchi che non diventano detriti.
+func _spawn_dust(at: Vector3, amount: int) -> void:
+	var dust := CPUParticles3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3.ONE * block_size * 0.5
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color.lightened(0.3)
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mesh.material = material
+	dust.mesh = mesh
+	dust.amount = clampi(amount, 8, 48)
+	dust.lifetime = 0.9
+	dust.one_shot = true
+	dust.explosiveness = 0.9
+	dust.direction = Vector3.UP
+	dust.spread = 180.0
+	dust.initial_velocity_min = 1.0
+	dust.initial_velocity_max = 4.0
+	dust.gravity = Vector3(0.0, -3.0, 0.0)
+	dust.scale_amount_min = 0.4
+	get_tree().current_scene.add_child(dust)
+	dust.global_position = at
+	dust.emitting = true
+	dust.finished.connect(dust.queue_free)
 
 
 func _block_center(i: int) -> Vector3:
@@ -283,6 +322,14 @@ func _block_center(i: int) -> Vector3:
 @warning_ignore("integer_division")
 func _cell(i: int) -> Vector3i:
 	return Vector3i(i % _counts.x, (i / _counts.x) % _counts.y, i / (_counts.x * _counts.y))
+
+
+## La cella che contiene il punto locale, limitata ai bordi della struttura.
+func _cell_at(local_point: Vector3) -> Vector3i:
+	return Vector3i(
+			clampi(floori(local_point.x / block_size + _counts.x * 0.5), 0, _counts.x - 1),
+			clampi(floori(local_point.y / block_size), 0, _counts.y - 1),
+			clampi(floori(local_point.z / block_size + _counts.z * 0.5), 0, _counts.z - 1))
 
 
 func _index(cell: Vector3i) -> int:

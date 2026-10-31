@@ -48,10 +48,10 @@ Ogni nuova idea si confronta con questi tre punti. Se non ne rafforza nessuno, p
 
 ### Distruttibilità
 ✅ **Opzione A, blocchi distruttibili** (prototipo al passo 1.8):
-- Solo alcuni elementi sono distruttibili: muri interni, colonne, coperture, oggetti di scena. Sono fatti di blocchi visibili (circa 0,5 m) con colori a mattone. Pavimento e muri esterni restano indistruttibili.
-- **Li rompono:** granate ed esplosioni, pugni (con Mano pesante uno stacca un blocco), zombie scaraventati abbastanza forte e il Bestione in carica, che li sfonda e prosegue.
+- Solo alcuni elementi sono distruttibili: muri interni, colonne, coperture, oggetti di scena. Sono fatti di blocchi piccoli e visibili (0,25 m) con colori a mattone. Pavimento e muri esterni restano indistruttibili.
+- **Li rompono:** granate ed esplosioni, pugni (il pugno normale stacca un blocco, Mano pesante un pezzo grosso come un pugno), zombie scaraventati abbastanza forte e il Bestione in carica, che li sfonda e prosegue.
 - **Non li rompono:** i colpi delle armi da fuoco normali.
-- I blocchi rimasti senza appoggio crollano; i pezzi diventano detriti che svaniscono.
+- I blocchi rimasti senza appoggio crollano. I pezzi volano come detriti e, quando si fermano, **restano a terra per sempre** come macerie. Un singolo crollo lancia al massimo 100 pezzi; il resto si polverizza.
 - Gli zombie non vedono attraverso i muri, ma dopo un crollo passano dai buchi nuovi.
 - 💡 Più avanti: armi sbroccate pensate per demolire, materiali con resistenze diverse (legno, cemento, metallo).
 - Scartata per ora l'opzione "terreno scavabile ovunque" alla Deep Rock: troppo costosa per la rete e la navigazione.

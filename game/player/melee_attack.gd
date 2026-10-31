@@ -24,8 +24,8 @@ signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
 ## Spinta del pugno normale, in m/s (in avanti e verso l'alto).
 @export var push_speed := 5.0
 @export var push_up := 2.5
-## Danno del pugno normale ai blocchi distruttibili.
-@export var structure_damage := 20.0
+## Danno del pugno normale ai blocchi distruttibili: ne stacca uno a colpo.
+@export var structure_damage := 45.0
 @export var damage_number_scene: PackedScene
 
 @export_group("Mano pesante")
@@ -38,8 +38,10 @@ signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
 @export var heavy_launch_up := 5.0
 ## Danno che lo zombie lanciato fa agli altri zombie e a sé stesso contro un muro.
 @export var heavy_impact_damage := 20.0
-## Danno ai blocchi distruttibili: basta a staccarne uno con un pugno.
-@export var heavy_structure_damage := 45.0
+## Danno ai blocchi distruttibili nel raggio del colpo: stacca un pezzo grosso
+## come un pugno (più blocchi insieme).
+@export var heavy_structure_damage := 100.0
+@export var heavy_structure_radius := 0.35
 
 const LAYER_WORLD := 1
 
@@ -76,14 +78,15 @@ func attack(origin: Vector3, forward: Vector3, attacker: Node3D) -> void:
 func _hit_structure(origin: Vector3, forward: Vector3) -> void:
 	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward.normalized() * reach, LAYER_WORLD)
 	var result := get_world_3d().direct_space_state.intersect_ray(query)
-	if result.is_empty() or not result.collider is DestructibleBlocks:
+	var structure := DestructibleBlocks.from_collider(result.collider) if result else null
+	if structure == null:
 		return
 	# Il punto appena dentro la superficie colpita: lì c'è il blocco giusto.
 	var inside: Vector3 = result.position - result.normal * 0.1
 	if heavy_hand:
-		result.collider.damage_point(inside, heavy_structure_damage, forward.normalized() * 8.0)
+		structure.damage_sphere(inside, heavy_structure_radius, heavy_structure_damage, 8.0)
 	else:
-		result.collider.damage_point(inside, structure_damage, forward.normalized() * 3.0)
+		structure.damage_point(inside, structure_damage, forward.normalized() * 3.0)
 
 
 func _targets(origin: Vector3, forward: Vector3) -> Array[Enemy]:

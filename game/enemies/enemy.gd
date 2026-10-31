@@ -249,9 +249,10 @@ func _update_launched(velocity_before_move: Vector3) -> void:
 		elif collision.get_normal().y < 0.5 and not other is FpsController \
 				and speed >= wall_hit_min_speed and not _hit_wall:
 			_hit_wall = true
-			if other is DestructibleBlocks and speed >= wall_break_speed:
+			var structure := DestructibleBlocks.from_collider(other)
+			if structure and speed >= wall_break_speed:
 				# Scaraventato abbastanza forte, sfonda il muro.
-				other.damage_sphere(collision.get_position(), 0.6, wall_break_damage, speed * 0.5)
+				structure.damage_sphere(collision.get_position(), 0.6, wall_break_damage, speed * 0.5)
 			if _impact_damage > 0.0:
 				_take_impact_damage(_impact_damage, _impact_source, collision.get_position())
 			# Rimbalza un po' all'indietro.
