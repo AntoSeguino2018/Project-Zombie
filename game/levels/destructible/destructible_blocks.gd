@@ -41,8 +41,9 @@ const CHUNK := 4
 	set(value):
 		color_variation = value
 		_rebuild()
-## Fessura visibile tra i blocchi, in metri.
-@export var gap := 0.03:
+## Fessura visibile tra i blocchi, in metri (0 = muro compatto; i blocchi si
+## distinguono solo dalle sfumature di colore).
+@export var gap := 0.0:
 	set(value):
 		gap = value
 		_rebuild()
@@ -282,7 +283,7 @@ func _spawn_debris(at: Vector3, velocity: Vector3) -> bool:
 		return false
 	var piece_color := color * (1.0 + randf_range(-color_variation, color_variation))
 	piece_color.a = 1.0
-	return RubbleField.of(self).spawn(Transform3D(global_basis, at), block_size * 0.9, piece_color, velocity)
+	return RubbleField.of(self).spawn(Transform3D(global_basis, at), block_size * 0.95, piece_color, velocity)
 
 
 ## Nuvola di polvere per i blocchi che non diventano detriti.

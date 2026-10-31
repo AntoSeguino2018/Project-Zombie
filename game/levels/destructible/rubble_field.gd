@@ -1,34 +1,41 @@
 class_name RubbleField
 extends Node3D
-## Macerie del livello. I pezzi delle strutture distrutte volano come corpi
-## fisici; quando si fermano diventano macerie permanenti, disegnate tutte
-## insieme (MultiMesh) e senza più costo per la fisica. Così restano a terra
-## per sempre senza appesantire il gioco.
+## Macerie del livello. I pezzi delle strutture distrutte sono corpi fisici:
+## volano, cadono e, dopo aver toccato terra, restano spostabili per
+## SETTLE_TIME secondi (giocatori e zombie li spingono camminando, le
+## esplosioni li rilanciano). Poi diventano macerie immobili e permanenti,
+## disegnate tutte insieme (MultiMesh) senza più costo per la fisica.
 ## Ce n'è una per livello, creata alla prima distruzione: RubbleField.of(nodo).
-## Le macerie ferme sono solo visive: giocatori e zombie ci passano attraverso,
-## come già succede con i pezzi in volo.
+## I pezzi non bloccano mai giocatori e zombie: ci passano attraverso spingendoli.
 
-## Pezzi in volo al massimo nello stesso momento (contando quelli in coda).
-const MAX_FLYING := 160
+## Pezzi fisici al massimo nello stesso momento (contando quelli in coda).
+const MAX_ACTIVE := 300
 ## Pezzi creati al massimo per tick: un grosso crollo si distribuisce su qualche
 ## tick invece di bloccare un singolo frame.
 const SPAWN_PER_TICK := 30
+## Pezzi trasformati in macerie al massimo per tick, per lo stesso motivo.
+const SETTLE_PER_TICK := 30
+## Secondi in cui un pezzo resta spostabile dopo aver toccato terra.
+const SETTLE_TIME := 10.0
+## Un pezzo che non tocca mai nulla (es. incastrato in aria) si ferma comunque dopo
+## questi secondi.
+const MAX_LIFETIME := 30.0
 ## Macerie ferme per ogni MultiMesh; quando è piena se ne crea un'altra.
 const BATCH_SIZE := 2048
-## Un pezzo si considera fermo sotto questa velocità, in m/s...
-const REST_SPEED := 0.15
-## ...e comunque diventa maceria dopo questi secondi di volo.
-const MAX_FLIGHT_TIME := 6.0
 ## Sotto questa quota il pezzo è caduto fuori dal livello: non diventa maceria.
 const LOST_HEIGHT := -50.0
+## I pezzi urtano il mondo e vengono spinti da giocatori e zombie (che invece
+## non urtano i pezzi). Tra loro non si urtano, per non appesantire la fisica.
+const PIECE_MASK := 1 | 2 | 4
 
-## Pezzi in volo: [corpo, colore, lato, secondi di volo].
-var _flying: Array = []
+## Pezzi fisici: [corpo, colore, lato, secondi di vita, secondi da quando ha
+## toccato terra (-1 = non ancora)].
+var _active: Array = []
 ## Pezzi in attesa di essere creati: [trasformazione, lato, colore, velocità].
 var _pending: Array = []
 ## Lato del pezzo -> MultiMeshInstance3D delle macerie ferme di quel lato.
 var _batches := {}
-## Colore -> materiale dei pezzi in volo (pochi colori, materiali condivisi).
+## Colore -> materiale dei pezzi fisici (pochi colori, materiali condivisi).
 var _materials := {}
 
 
@@ -44,14 +51,15 @@ static func of(node: Node) -> RubbleField:
 
 
 func can_spawn() -> bool:
-	return _flying.size() + _pending.size() < MAX_FLYING
+	return _active.size() + _pending.size() < MAX_ACTIVE
 
 
-## Pezzi in volo, compresi quelli in coda.
-func flying_count() -> int:
-	return _flying.size() + _pending.size()
+## Pezzi ancora fisici (in volo o spostabili a terra), compresi quelli in coda.
+func active_count() -> int:
+	return _active.size() + _pending.size()
 
 
+## Macerie diventate immobili.
 func rubble_count() -> int:
 	var total := 0
 	for batches in _batches.values():
@@ -61,7 +69,7 @@ func rubble_count() -> int:
 
 
 ## Lancia un pezzo cubico di lato size dalla posizione e rotazione indicate
-## (entro pochi tick). Restituisce falso se ci sono già troppi pezzi in volo.
+## (entro pochi tick). Restituisce falso se ci sono già troppi pezzi fisici.
 func spawn(start: Transform3D, size: float, color: Color, velocity: Vector3) -> bool:
 	if not can_spawn():
 		return false
@@ -69,11 +77,28 @@ func spawn(start: Transform3D, size: float, color: Color, velocity: Vector3) -> 
 	return true
 
 
+## Spinge via dal centro i pezzi ancora fisici entro radius (esplosioni):
+## velocità speed vicino al centro, sempre meno verso il bordo.
+func push_sphere(center: Vector3, radius: float, speed: float) -> void:
+	for item in _active:
+		var body: RigidBody3D = item[0]
+		var offset := body.global_position - center
+		var distance := offset.length()
+		if distance > radius:
+			continue
+		var away := offset / distance if distance > 0.01 else Vector3.UP
+		# Un impulso sveglia anche i pezzi fermi (una velocità impostata a mano no).
+		body.apply_central_impulse((away + Vector3.UP * 0.5) * speed * (1.0 - distance / radius) * body.mass)
+
+
 func _create_piece(start: Transform3D, size: float, color: Color, velocity: Vector3) -> void:
 	var body := RigidBody3D.new()
 	body.collision_layer = DestructibleBlocks.LAYER_DEBRIS
-	body.collision_mask = DestructibleBlocks.LAYER_WORLD
+	body.collision_mask = PIECE_MASK
 	body.mass = 1.0
+	# Serve per sapere quando tocca terra.
+	body.contact_monitor = true
+	body.max_contacts_reported = 1
 	var shape := CollisionShape3D.new()
 	shape.shape = BoxShape3D.new()
 	shape.shape.size = Vector3.ONE * size
@@ -88,31 +113,36 @@ func _create_piece(start: Transform3D, size: float, color: Color, velocity: Vect
 	body.global_transform = start
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
-	_flying.append([body, color, size, 0.0])
+	_active.append([body, color, size, 0.0, -1.0])
 
 
 func _physics_process(delta: float) -> void:
 	for n in mini(SPAWN_PER_TICK, _pending.size()):
 		var piece: Array = _pending.pop_front()
 		_create_piece(piece[0], piece[1], piece[2], piece[3])
-	for i in range(_flying.size() - 1, -1, -1):
-		var item: Array = _flying[i]
+	var settled := 0
+	for i in range(_active.size() - 1, -1, -1):
+		var item: Array = _active[i]
 		var body: RigidBody3D = item[0]
 		item[3] += delta
-		var resting: bool = item[3] > 0.5 and (body.sleeping or (body.linear_velocity.length() < REST_SPEED
-				and body.angular_velocity.length() < REST_SPEED * 4.0))
-		if resting or item[3] > MAX_FLIGHT_TIME or body.global_position.y < LOST_HEIGHT:
-			if body.global_position.y >= LOST_HEIGHT:
+		if item[4] < 0.0 and body.get_contact_count() > 0:
+			item[4] = 0.0
+		elif item[4] >= 0.0:
+			item[4] += delta
+		var lost := body.global_position.y < LOST_HEIGHT
+		if (item[4] >= SETTLE_TIME or item[3] >= MAX_LIFETIME or lost) and settled < SETTLE_PER_TICK:
+			settled += 1
+			if not lost:
 				_add_rubble(body.global_transform, item[2], item[1])
 			body.queue_free()
-			_flying.remove_at(i)
+			_active.remove_at(i)
 
 
 func _add_rubble(where: Transform3D, size: float, color: Color) -> void:
 	var multimesh := _batch_for(size).multimesh
 	var i := multimesh.visible_instance_count
 	multimesh.set_instance_transform(i, where)
-	# I colori delle istanze vengono letti come lineari: stessa tinta dei pezzi in volo.
+	# I colori delle istanze vengono letti come lineari: stessa tinta dei pezzi fisici.
 	multimesh.set_instance_color(i, color.srgb_to_linear())
 	multimesh.visible_instance_count = i + 1
 

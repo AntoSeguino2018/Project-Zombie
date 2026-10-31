@@ -95,6 +95,8 @@ func _explode(center: Vector3) -> void:
 	# Le strutture distruttibili controllano da sole quali blocchi sono nel raggio.
 	for structure: DestructibleBlocks in get_tree().get_nodes_in_group("destructibles"):
 		structure.damage_sphere(center, _data.explosion_radius, _data.explosion_damage, 8.0)
+	# Le macerie ancora spostabili vengono rilanciate.
+	RubbleField.of(self).push_sphere(center, _data.explosion_radius * 1.5, 10.0)
 	var hit_bodies := {}
 	for result in get_world_3d().direct_space_state.intersect_shape(params, 128):
 		var body: Node3D = result.collider
