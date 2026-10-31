@@ -1,6 +1,6 @@
 # Roadmap: Project Zombie (nome provvisorio)
 
-Obiettivo: FPS roguelike in prima persona, grafica low-poly colorata e stilizzata, più personaggi giocabili, co-op online fino a 4 giocatori.
+Obiettivo: FPS roguelike in prima persona sugli zombie, grafica low-poly colorata e stilizzata, più personaggi giocabili, co-op online fino a 4 giocatori. Le armi sono le protagoniste.
 
 **Risorse:** 5–15 ore a settimana, sviluppatore principalmente solo (il team potrebbe crescere).
 **Tempi indicativi:** fino alla vertical slice servono circa **270–450 ore**. Con una media di 10 ore a settimana sono **6–12 mesi**. Le stime di ogni fase sono in ore, così valgono anche nelle settimane più piene o più vuote.
@@ -15,7 +15,7 @@ Obiettivo: FPS roguelike in prima persona, grafica low-poly colorata e stilizzat
 | Rete | **Listen server** (un giocatore fa da host), server autoritativo per nemici, oggetti e loot | È il modello standard per il co-op a 4. Niente server dedicati da pagare. |
 | Matchmaking | Prima IP/LAN, poi **Steam** (lobby + relay tramite GodotSteam) | Con Steam gli amici si invitano senza aprire porte del router. |
 | Piattaforma | PC (Windows), distribuzione su Steam | Console solo molto più avanti, se mai. |
-| Stile grafico | Low-poly, flat shading, texture a palette (atlante di colori), nebbia colorata, illuminazione morbida | Ispirato al genere ma con identità **originale**: personaggi, mondo e meccaniche nostre. |
+| Stile grafico | Low-poly alla **Deep Rock Galactic**: flat shading, texture a palette (atlante di colori), luci colorate, nebbia | Identità **originale**: personaggi, mondo e meccaniche nostre. Dettagli in [DESIGN.md](DESIGN.md). |
 | Versioning | **Git + GitHub** (repo privato) | Backup e storico di ogni modifica. |
 
 > Il progetto vive in `C:\Dev\Project-Zombie`, fuori da OneDrive (la sincronizzazione blocca o corrompe i file di Godot e Git). Il backup sarà GitHub.
@@ -27,7 +27,7 @@ Obiettivo: FPS roguelike in prima persona, grafica low-poly colorata e stilizzat
 ## Fasi
 
 ### Fase 0: Pre-produzione (~10–15 ore)
-- [ ] Mini documento di design (1–2 pagine): ambientazione, tono, nome provvisorio
+- [ ] Mini documento di design: **bozza in [DESIGN.md](DESIGN.md)**, da completare con le risposte alle domande aperte
 - [ ] Core loop in una frase (es. *"entri nel livello → uccidi → raccogli valuta → apri casse/oggetti → completi l'obiettivo → livello successivo, più difficile"*)
 - [ ] Prima bozza di 2 personaggi (concept: silhouette, arma, ruolo)
 - [ ] Palette colori e moodboard di riferimento (i tuoi disegni)
@@ -41,9 +41,10 @@ Tutto con cubi e capsule, zero grafica definitiva.
 - [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob *(rimandato a quando ci saranno nemici)*
 - [x] 1.3 Prima arma: sparo hitscan, cadenza, dispersione, rinculo, mirino, scia e impatti, arma in prima persona
 - [x] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
-- [ ] 1.5 Primo nemico (insegue e attacca) con navigazione (NavigationMesh), morte e respawn del giocatore
+- [x] 1.5 Primo nemico: navigazione calcolata all'avvio del livello, inseguimento, attacco in mischia schivabile, spawner provvisori; morte e rinascita del giocatore, barra della vita, bordo rosso quando si subisce danno
+- [ ] 1.5b Altri due zombie (Scattista veloce, Bestione tank) e colpo corpo a corpo con la passiva "Mano pesante" (vedi [DESIGN.md](DESIGN.md))
 - [ ] 1.6 Proiettili fisici
-- [ ] 1.7 HUD minimo e playtest
+- [ ] 1.7 HUD minimo (la barra della vita c'è già) e playtest
 - **Verifica:** il gioco è già divertente per 2 minuti con i cubi? Se no, si sistema qui.
 
 ### Fase 2: Fondamenta di rete (~50–80 ore)
