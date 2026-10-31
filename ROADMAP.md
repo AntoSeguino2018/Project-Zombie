@@ -37,7 +37,8 @@ Obiettivo: FPS roguelike in prima persona, grafica low-poly colorata e stilizzat
 
 ### Fase 1: Prototipo FPS in greybox (~30–50 ore)
 Tutto con cubi e capsule, zero grafica definitiva.
-- [ ] Controller FPS: movimento, salto, sprint, mouse look, gravità ben tarata
+- [x] 1.1 Controller FPS base: movimento, salto, sprint, mouse look, gravità + livello di prova in greybox
+- [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob
 - [ ] Sparo hitscan + proiettili fisici, danno, feedback (hitmarker, numeri di danno)
 - [ ] Salute, morte, respawn
 - [ ] 1 nemico base (insegue e attacca) con navigazione (NavigationMesh)
