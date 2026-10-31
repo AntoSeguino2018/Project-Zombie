@@ -14,6 +14,10 @@ signal changed(current: float, maximum: float)
 @export var max_health := 100.0
 
 var current := 0.0
+## Se impostato, modifica ogni danno in arrivo prima di applicarlo (corazze,
+## punti deboli...). Riceve (amount, source, hit_position) e restituisce il
+## danno da applicare.
+var damage_filter: Callable
 
 
 func _ready() -> void:
@@ -34,9 +38,11 @@ func is_alive() -> bool:
 	return current > 0.0
 
 
-## Applica il danno e restituisce quanto ne è stato inflitto davvero
-## (mai più della vita rimasta). source è chi ha causato il danno.
+## Applica il danno e restituisce quanto ne è stato inflitto davvero (dopo
+## l'eventuale filtro, mai più della vita rimasta). source è chi ha causato il danno.
 func take_damage(amount: float, source: Node = null, hit_position := Vector3.ZERO) -> float:
+	if damage_filter.is_valid():
+		amount = damage_filter.call(amount, source, hit_position)
 	if not is_alive() or amount <= 0.0:
 		return 0.0
 	var dealt := minf(amount, current)

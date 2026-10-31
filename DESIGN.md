@@ -68,11 +68,12 @@ Ogni nuova idea si confronta con questi tre punti. Se non ne rafforza nessuno, p
 
 ✅ Abilità: **Mano pesante** (passiva).
 
-Tutti i personaggi hanno un colpo corpo a corpo base: una spinta che fa poco danno. Con Mano pesante la spinta diventa una mazzata:
-- 💡 lo zombie viene **scaraventato via**
-- 💡 se in volo sbatte contro altri zombie, **danneggia anche loro**
-- 💡 se sbatte contro un muro, subisce danno extra
-- 💡 il Bestione è troppo pesante per volare: viene solo stordito per un attimo
+Tutti i personaggi hanno un colpo corpo a corpo base (tasto **F**): un pugno che fa 10 danni e spinge un po'. Con Mano pesante diventa una mazzata da 25 (prototipo fatto al passo 1.5b):
+- lo zombie viene **scaraventato via**
+- se in volo sbatte contro altri zombie, fa a ognuno **20 danni** e li spinge
+- se sbatte contro un muro, subisce lui 20 danni
+- il Bestione è troppo pesante per volare: viene solo stordito per un attimo
+- anche il colpo finale fa volare via il corpo
 
 Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma spara più veloce, poi si surriscalda), Prototipo (torretta con una copia della tua arma), Assolo (onda sonora che respinge).
 
@@ -123,7 +124,7 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 2. **Sovraccarichi:** persone "esagerate" da qualcosa (troppa caffeina? troppo di tutto?). Ogni zombie porta all'estremo un difetto o un'abitudine. È la strada dove i vostri inside joke entrano meglio.
 3. **Nati dal Complesso:** creature generate dal posto stesso, metà persone e metà oggetti (sedie, lampade, armadietti).
 
-✅ **Per ora si parte con 3 tipi:** uno base e due speciali, un tank e uno veloce. Ogni numero si regolerà giocando.
+✅ **Per ora si parte con 3 tipi:** uno base e due speciali, un tank e uno veloce. Prototipi in greybox fatti al passo 1.5b; ogni numero si regolerà giocando.
 
 | Nome provvisorio | Vita | Velocità | Comportamento |
 |---|---|---|---|

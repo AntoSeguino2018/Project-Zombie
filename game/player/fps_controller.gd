@@ -16,6 +16,8 @@ extends CharacterBody3D
 @export var jump_velocity := 6.5
 ## Moltiplica la gravità del progetto: più alto = salto meno "lunare".
 @export var gravity_multiplier := 1.6
+## Rapidità con cui si esaurisce una spinta subita (a terra e in aria).
+@export var push_friction := Vector2(6.0, 1.5)
 
 @export_group("Visuale")
 ## Radianti di rotazione per pixel di movimento del mouse.
@@ -36,6 +38,8 @@ var _pitch := 0.0
 ## Spostamento della visuale dovuto al rinculo (x = alto/basso, y = lati), in
 ## radianti. Si somma alla mira e torna a zero da solo.
 var _recoil := Vector2.ZERO
+## Spinta ricevuta (es. carica del Bestione): si somma al movimento e si esaurisce.
+var _push := Vector3.ZERO
 var _spawn_transform: Transform3D
 var _respawn_left := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si muore.
@@ -45,6 +49,7 @@ var _death_blend := 0.0
 @onready var _camera: Camera3D = $Camera3D
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
 @onready var _weapon: HitscanWeapon = $Camera3D/Weapon
+@onready var _melee: MeleeAttack = $Camera3D/Melee
 @onready var _health: HealthComponent = $Health
 @onready var _hud: PlayerHud = $Hud
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -64,6 +69,7 @@ func _ready() -> void:
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
+	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_health.damaged.connect(_on_damaged)
 	_health.died.connect(_on_died)
 	_hud.bind(_health)
@@ -110,11 +116,14 @@ func _physics_process(delta: float) -> void:
 	var direction := transform.basis * Vector3(input.x, 0.0, input.y)
 	var sprinting := Input.is_action_pressed("sprint") and input.y < 0.0
 	var speed := sprint_speed if sprinting else walk_speed
-	velocity.x = direction.x * speed
-	velocity.z = direction.z * speed
+	var friction := push_friction.x if is_on_floor() else push_friction.y
+	_push = _push.lerp(Vector3.ZERO, 1.0 - exp(-friction * delta))
+	velocity.x = direction.x * speed + _push.x
+	velocity.z = direction.z * speed + _push.z
 
 	move_and_slide()
 	_handle_fire()
+	_handle_melee()
 	if global_position.y < kill_height:
 		_health.take_damage(_health.current)
 
@@ -130,6 +139,21 @@ func _physics_process_dead(delta: float) -> void:
 	_hud.update_respawn_countdown(_respawn_left)
 	if _respawn_left <= 0.0:
 		_respawn()
+
+
+func _handle_melee() -> void:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or not _melee.can_attack():
+		return
+	if Input.is_action_just_pressed("melee"):
+		_melee.attack(_head.global_position, -_aim_basis().z, self)
+
+
+## Spinge via il giocatore con questa velocità (orizzontale + salto).
+func apply_knockback(impulse: Vector3) -> void:
+	if not _health.is_alive():
+		return
+	_push = Vector3(impulse.x, 0.0, impulse.z)
+	velocity.y = maxf(velocity.y, impulse.y)
 
 
 func _on_damaged(_amount: float, _source: Node, _hit_position: Vector3) -> void:
@@ -149,6 +173,7 @@ func _on_died(_source: Node) -> void:
 func _respawn() -> void:
 	global_transform = _spawn_transform
 	velocity = Vector3.ZERO
+	_push = Vector3.ZERO
 	_yaw = _spawn_transform.basis.get_euler().y
 	_pitch = 0.0
 	_recoil = Vector2.ZERO

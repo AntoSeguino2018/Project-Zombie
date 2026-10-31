@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://game/enemies/melee_enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://game/combat/health_component.gd" id="2_health"]
+[ext_resource type="PackedScene" path="res://game/combat/damage_number.tscn" id="3_damage_number"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -41,8 +42,11 @@ material = SubResource("StandardMaterial3D_skin")
 size = Vector3(0.15, 0.15, 0.66)
 
 [node name="Walker" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 7
 floor_snap_length = 0.3
 script = ExtResource("1_enemy")
+damage_number_scene = ExtResource("3_damage_number")
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("2_health")

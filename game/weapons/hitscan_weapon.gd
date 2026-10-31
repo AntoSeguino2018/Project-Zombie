@@ -85,10 +85,11 @@ func _apply_damage(collider: Object, point: Vector3) -> void:
 	var target := HealthComponent.of(collider)
 	if not target or not target.is_alive():
 		return
-	target.take_damage(data.damage, owner, point)
+	# Si mostra il danno inflitto davvero: corazze e punti deboli lo cambiano.
+	var dealt := target.take_damage(data.damage, owner, point)
 	var killed := not target.is_alive()
-	_spawn_damage_number(point, data.damage, killed)
-	dealt_damage.emit(target, data.damage, killed)
+	_spawn_damage_number(point, dealt, killed)
+	dealt_damage.emit(target, dealt, killed)
 
 
 func _spawn_damage_number(point: Vector3, amount: float, killed: bool) -> void:

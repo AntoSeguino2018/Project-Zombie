@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://game/levels/level_navigation.gd" id="7_navigation"]
 [ext_resource type="Script" path="res://game/enemies/enemy_spawner.gd" id="8_spawner"]
 [ext_resource type="PackedScene" path="res://game/enemies/walker.tscn" id="9_walker"]
+[ext_resource type="PackedScene" path="res://game/enemies/runner.tscn" id="10_runner"]
+[ext_resource type="PackedScene" path="res://game/enemies/brute.tscn" id="11_brute"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -205,20 +207,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3, -17)
 [node name="SpawnerNorthWest" type="Marker3D" parent="Enemies"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -34)
 script = ExtResource("8_spawner")
-enemy_scene = ExtResource("9_walker")
+enemy_scenes = Array[PackedScene]([ExtResource("9_walker"), ExtResource("9_walker"), ExtResource("10_runner")])
 initial_delay = 3.0
+max_alive = 3
 
 [node name="SpawnerNorthEast" type="Marker3D" parent="Enemies"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, -34)
 script = ExtResource("8_spawner")
-enemy_scene = ExtResource("9_walker")
+enemy_scenes = Array[PackedScene]([ExtResource("9_walker"), ExtResource("10_runner")])
 initial_delay = 6.0
+max_alive = 3
 
 [node name="SpawnerSouth" type="Marker3D" parent="Enemies"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 34)
 script = ExtResource("8_spawner")
-enemy_scene = ExtResource("9_walker")
-initial_delay = 10.0
+enemy_scenes = Array[PackedScene]([ExtResource("11_brute")])
+initial_delay = 15.0
+spawn_interval = 15.0
 
 [node name="Labels" type="Node3D" parent="."]
 
