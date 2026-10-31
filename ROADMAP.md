@@ -45,7 +45,8 @@ Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.5b Altri due zombie (Scattista veloce con tuffo, Bestione tank con corazza, punto debole e carica), pugno con il tasto F e passiva "Mano pesante", spinte e stordimento (vedi [DESIGN.md](DESIGN.md))
 - [x] 1.6 Proiettili fisici (volo con gravità, controllo anti-attraversamento, esplosioni con danno ad area e spinta), armi hitscan o a proiettili dallo stesso sistema, cambio arma (1/2, rotella) e Lanciagranate prototipo
 - [x] 1.7 HUD minimo: munizioni e ricarica, arma in mano, uccisioni e tempo di sopravvivenza, direzione del danno, comandi all'avvio, riepilogo alla morte con record
-- [ ] 1.8 Playtest con i cubi e ritocchi in base alle impressioni
+- [x] 1.8 Strutture distruttibili a blocchi (muri, colonne, coperture): si rompono con granate, pugni, zombie scaraventati e carica del Bestione, i pezzi senza appoggio crollano, la navigazione si ricalcola
+- [ ] 1.9 Playtest con i cubi e ritocchi in base alle impressioni
 - **Verifica:** il gioco è già divertente per 2 minuti con i cubi? Se no, si sistema qui.
 
 ### Fase 2: Fondamenta di rete (~50–80 ore)

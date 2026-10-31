@@ -92,8 +92,11 @@ func _explode(center: Vector3) -> void:
 	params.transform = Transform3D(Basis.IDENTITY, center)
 	params.collision_mask = _mask
 	params.exclude = _exclude
+	# Le strutture distruttibili controllano da sole quali blocchi sono nel raggio.
+	for structure: DestructibleBlocks in get_tree().get_nodes_in_group("destructibles"):
+		structure.damage_sphere(center, _data.explosion_radius, _data.explosion_damage, 8.0)
 	var hit_bodies := {}
-	for result in get_world_3d().direct_space_state.intersect_shape(params, 64):
+	for result in get_world_3d().direct_space_state.intersect_shape(params, 128):
 		var body: Node3D = result.collider
 		if hit_bodies.has(body):
 			continue

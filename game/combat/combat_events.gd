@@ -8,5 +8,8 @@ extends RefCounted
 ## Un nemico è morto. killer è chi l'ha ucciso (anche indirettamente, es. con
 ## un'esplosione o lanciandogli contro un altro zombie); può essere null.
 signal enemy_killed(enemy: Node, killer: Node)
+## La forma del livello è cambiata (es. un muro è crollato): chi dipende dalla
+## geometria, come la mappa di navigazione, deve aggiornarsi.
+signal terrain_changed(source: Node)
 
 static var bus := CombatEvents.new()

@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://game/enemies/walker.tscn" id="9_walker"]
 [ext_resource type="PackedScene" path="res://game/enemies/runner.tscn" id="10_runner"]
 [ext_resource type="PackedScene" path="res://game/enemies/brute.tscn" id="11_brute"]
+[ext_resource type="Script" path="res://game/levels/destructible/destructible_blocks.gd" id="12_destructible"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -188,6 +189,30 @@ use_collision = true
 size = Vector3(2, 3, 2)
 material = ExtResource("3_wall")
 
+[node name="Destructibles" type="Node3D" parent="." groups=["navigation_source"]]
+
+[node name="WallBehindSpawn" type="StaticBody3D" parent="Destructibles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7)
+script = ExtResource("12_destructible")
+size = Vector3(6, 3, 0.5)
+
+[node name="CoverEast" type="StaticBody3D" parent="Destructibles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -7)
+script = ExtResource("12_destructible")
+size = Vector3(3, 1, 0.5)
+color = Color(0.55, 0.62, 0.78, 1)
+
+[node name="ColumnWest" type="StaticBody3D" parent="Destructibles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -4)
+script = ExtResource("12_destructible")
+size = Vector3(1, 3, 1)
+color = Color(0.85, 0.75, 0.45, 1)
+
+[node name="WallWestYard" type="StaticBody3D" parent="Destructibles"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -16, 0, 4)
+script = ExtResource("12_destructible")
+size = Vector3(8, 3, 0.5)
+
 [node name="Dummies" type="Node3D" parent="."]
 
 [node name="DummyNear" parent="Dummies" instance=ExtResource("6_dummy")]
@@ -267,4 +292,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 2, -9.5)
 billboard = 1
 text = "Rampa 50° (troppo ripida)"
 font_size = 64
+outline_size = 12
+
+[node name="DestructibleLabel" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 7)
+billboard = 1
+text = "Distruttibile (granate, pugni, Bestione)"
+font_size = 48
 outline_size = 12

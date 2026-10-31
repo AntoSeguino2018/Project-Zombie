@@ -87,6 +87,7 @@ weapon_prev={
 3d_physics/layer_1="Mondo"
 3d_physics/layer_2="Giocatori"
 3d_physics/layer_3="Nemici"
+3d_physics/layer_4="Detriti"
 
 [physics]
 

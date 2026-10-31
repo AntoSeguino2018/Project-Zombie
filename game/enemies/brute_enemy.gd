@@ -31,8 +31,10 @@ enum Charge { WINDUP, RUN, RECOVER }
 @export var charge_recovery := 0.6
 ## Secondi tra una carica e l'altra.
 @export var charge_cooldown := 6.0
-## Secondi stordito se finisce contro un muro.
+## Secondi stordito se finisce contro un muro indistruttibile.
 @export var wall_stun := 1.5
+## Danno ai blocchi distruttibili quando ci carica contro: li sfonda e prosegue.
+@export var charge_structure_damage := 200.0
 
 var _charging := false
 var _charge := Charge.WINDUP
@@ -119,6 +121,9 @@ func _after_move(velocity_before_move: Vector3) -> void:
 			# Travolge gli altri zombie spingendoli di lato.
 			var away := _flat(other.global_position - global_position).normalized()
 			other.apply_knockback((away + _charge_direction) * 6.0 + Vector3.UP * 4.0, 0.0, self)
+		elif other is DestructibleBlocks:
+			# Un muro di blocchi non lo ferma: lo sfonda e continua a correre.
+			other.damage_sphere(collision.get_position(), 1.6, charge_structure_damage, charge_speed * 0.6)
 		elif collision.get_normal().y < 0.5 and collision.get_normal().dot(_charge_direction) < -0.5 \
 				and not other is FpsController:
 			# Dritto contro un muro: resta intontito.
