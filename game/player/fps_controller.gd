@@ -25,16 +25,23 @@ extends CharacterBody3D
 
 var _yaw := 0.0
 var _pitch := 0.0
+## Spostamento della visuale dovuto al rinculo (x = alto/basso, y = lati), in
+## radianti. Si somma alla mira e torna a zero da solo.
+var _recoil := Vector2.ZERO
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
+@onready var _weapon: HitscanWeapon = $Camera3D/Weapon
+@onready var _hud: CanvasLayer = $Hud
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
 func _ready() -> void:
 	_yaw = rotation.y
 	if not is_multiplayer_authority():
+		_weapon.visible = false
+		_hud.visible = false
 		set_process(false)
 		set_process_unhandled_input(false)
 		return
@@ -57,7 +64,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pitch = clampf(_pitch - motion.y * mouse_sensitivity, -limit, limit)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_recoil = _recoil.lerp(Vector2.ZERO, 1.0 - exp(-_weapon.data.recoil_recovery * delta))
 	_update_camera()
 
 
@@ -81,11 +89,31 @@ func _physics_process(delta: float) -> void:
 	velocity.z = direction.z * speed
 
 	move_and_slide()
+	_handle_fire()
+
+
+func _handle_fire() -> void:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or not _weapon.can_fire():
+		return
+	var trigger := Input.is_action_pressed("fire") if _weapon.data.automatic \
+			else Input.is_action_just_pressed("fire")
+	if not trigger:
+		return
+	_weapon.fire(_head.global_position, -_aim_basis().z, [get_rid()])
+	_recoil.x += deg_to_rad(_weapon.data.recoil_pitch_degrees)
+	_recoil.y += deg_to_rad(randf_range(-1.0, 1.0) * _weapon.data.recoil_yaw_degrees)
+
+
+## Direzione in cui si guarda, rinculo compreso: si spara dove si vede il mirino.
+func _aim_basis() -> Basis:
+	var limit := deg_to_rad(max_pitch_degrees)
+	var pitch := clampf(_pitch + _recoil.x, -limit, limit)
+	return Basis.from_euler(Vector3(pitch, _yaw + _recoil.y, 0.0))
 
 
 func _update_camera() -> void:
 	var eye := _head.get_global_transform_interpolated().origin
-	_camera.global_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _yaw, 0.0)), eye)
+	_camera.global_transform = Transform3D(_aim_basis(), eye)
 
 
 func _capture_mouse() -> void:

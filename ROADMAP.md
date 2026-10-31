@@ -38,11 +38,12 @@ Obiettivo: FPS roguelike in prima persona, grafica low-poly colorata e stilizzat
 ### Fase 1: Prototipo FPS in greybox (~30–50 ore)
 Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.1 Controller FPS base: movimento, salto, sprint, mouse look, gravità + livello di prova in greybox
-- [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob
-- [ ] Sparo hitscan + proiettili fisici, danno, feedback (hitmarker, numeri di danno)
-- [ ] Salute, morte, respawn
-- [ ] 1 nemico base (insegue e attacca) con navigazione (NavigationMesh)
-- [ ] Livello di prova
+- [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob *(rimandato a quando ci saranno nemici)*
+- [x] 1.3 Prima arma: sparo hitscan, cadenza, dispersione, rinculo, mirino, scia e impatti, arma in prima persona
+- [ ] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
+- [ ] 1.5 Primo nemico (insegue e attacca) con navigazione (NavigationMesh), morte e respawn del giocatore
+- [ ] 1.6 Proiettili fisici
+- [ ] 1.7 HUD minimo e playtest
 - **Verifica:** il gioco è già divertente per 2 minuti con i cubi? Se no, si sistema qui.
 
 ### Fase 2: Fondamenta di rete (~50–80 ore)
@@ -131,4 +132,4 @@ Una run completa e "vera" da giocare con gli amici:
 1. ~~Struttura del progetto in `C:\Dev\Project-Zombie`~~ ✅
 2. Installare **Godot 4** (versione standard, non .NET) e aprire il progetto con *Import*
 3. Installare **Blender** con il server MCP (serve dalla Fase 5, ma utile già per le bozze)
-4. Io scrivo il controller FPS e il livello di prova (inizio Fase 1)
+4. ~~Controller FPS e livello di prova (inizio Fase 1)~~ ✅
