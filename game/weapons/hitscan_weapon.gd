@@ -9,12 +9,15 @@ extends Node3D
 
 signal fired
 signal hit(collider: Object, position: Vector3, normal: Vector3)
+## Un colpo ha fatto danno a qualcosa con un HealthComponent.
+signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
 
 @export var data: WeaponData
 ## Punto da cui parte la scia del colpo (la bocca dell'arma).
 @export var muzzle: Node3D
 @export var impact_scene: PackedScene
 @export var tracer_scene: PackedScene
+@export var damage_number_scene: PackedScene
 
 @export_group("Animazione")
 ## Di quanto arretra l'arma a ogni colpo, in metri.
@@ -63,6 +66,7 @@ func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void
 		end = result.position
 		_spawn_impact(result.position, result.normal)
 		hit.emit(result.collider, result.position, result.normal)
+		_apply_damage(result.collider, result.position)
 
 	_spawn_tracer(muzzle.global_position if muzzle else origin, end)
 	fired.emit()
@@ -75,6 +79,24 @@ func _apply_spread(direction: Vector3) -> Vector3:
 	var side_axis := Vector3.UP if absf(direction.y) < 0.99 else Vector3.RIGHT
 	var tilted := direction.rotated(direction.cross(side_axis).normalized(), randf() * max_angle)
 	return tilted.rotated(direction, randf() * TAU)
+
+
+func _apply_damage(collider: Object, point: Vector3) -> void:
+	var target := HealthComponent.of(collider)
+	if not target or not target.is_alive():
+		return
+	target.take_damage(data.damage, owner, point)
+	var killed := not target.is_alive()
+	_spawn_damage_number(point, data.damage, killed)
+	dealt_damage.emit(target, data.damage, killed)
+
+
+func _spawn_damage_number(point: Vector3, amount: float, killed: bool) -> void:
+	if not damage_number_scene:
+		return
+	var number: DamageNumber = damage_number_scene.instantiate()
+	get_tree().current_scene.add_child(number)
+	number.show_value(amount, point, killed)
 
 
 func _spawn_impact(point: Vector3, normal: Vector3) -> void:

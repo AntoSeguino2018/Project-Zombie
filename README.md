@@ -16,10 +16,11 @@ game/            Il gioco, organizzato per funzionalità
   player/          controller FPS, camera, input
   characters/      definizioni dei personaggi e delle loro abilità
   weapons/         armi e proiettili
+  combat/          vita, danno, numeri di danno (comuni a giocatori e nemici)
   enemies/         nemici, IA, boss
   items/           oggetti della run (passivi, attivi)
   director/        logica degli spawn e della difficoltà
-  levels/          livelli e arene
+  levels/          livelli e arene (props/ per oggetti di scena come i manichini)
   net/             lobby, connessione, sincronizzazione
   ui/              HUD e menu
 shared/          Codice e risorse comuni

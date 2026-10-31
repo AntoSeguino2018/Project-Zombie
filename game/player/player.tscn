@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" path="res://game/weapons/effects/impact_effect.tscn" id="4_impact"]
 [ext_resource type="PackedScene" path="res://game/weapons/effects/tracer.tscn" id="5_tracer"]
 [ext_resource type="Script" path="res://game/ui/crosshair.gd" id="6_crosshair"]
+[ext_resource type="PackedScene" path="res://game/combat/damage_number.tscn" id="7_damage_number"]
+[ext_resource type="Script" path="res://game/combat/health_component.gd" id="8_health"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -53,6 +55,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 mesh = SubResource("CapsuleMesh_body")
 surface_material_override/0 = SubResource("StandardMaterial3D_body")
 
+[node name="Health" type="Node" parent="."]
+script = ExtResource("8_health")
+
 [node name="Head" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
@@ -69,6 +74,7 @@ data = ExtResource("3_carbine")
 muzzle = NodePath("Muzzle")
 impact_scene = ExtResource("4_impact")
 tracer_scene = ExtResource("5_tracer")
+damage_number_scene = ExtResource("7_damage_number")
 
 [node name="Body" type="MeshInstance3D" parent="Camera3D/Weapon"]
 cast_shadow = 0

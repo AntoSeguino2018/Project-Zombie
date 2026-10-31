@@ -40,7 +40,7 @@ Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.1 Controller FPS base: movimento, salto, sprint, mouse look, gravità + livello di prova in greybox
 - [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob *(rimandato a quando ci saranno nemici)*
 - [x] 1.3 Prima arma: sparo hitscan, cadenza, dispersione, rinculo, mirino, scia e impatti, arma in prima persona
-- [ ] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
+- [x] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
 - [ ] 1.5 Primo nemico (insegue e attacca) con navigazione (NavigationMesh), morte e respawn del giocatore
 - [ ] 1.6 Proiettili fisici
 - [ ] 1.7 HUD minimo e playtest

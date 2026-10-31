@@ -34,6 +34,7 @@ var _recoil := Vector2.ZERO
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
 @onready var _weapon: HitscanWeapon = $Camera3D/Weapon
 @onready var _hud: CanvasLayer = $Hud
+@onready var _crosshair: Crosshair = $Hud/Crosshair
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
@@ -47,6 +48,7 @@ func _ready() -> void:
 		return
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	_weapon.dealt_damage.connect(func(_target, _amount, killed): _crosshair.show_hit(killed))
 	_camera.make_current()
 	_capture_mouse()
 	_update_camera()

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/combat/damage_number.gd" id="1_number"]
+
+[node name="DamageNumber" type="Label3D"]
+physics_interpolation_mode = 2
+billboard = 1
+no_depth_test = true
+render_priority = 10
+outline_render_priority = 9
+modulate = Color(1, 0.92, 0.6, 1)
+text = "0"
+font_size = 64
+outline_size = 14
+script = ExtResource("1_number")

@@ -1,0 +1,65 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/levels/props/training_dummy.gd" id="1_dummy"]
+[ext_resource type="Script" path="res://game/combat/health_component.gd" id="2_health"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dummy"]
+radius = 0.38
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_post"]
+albedo_color = Color(0.35, 0.3, 0.26, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.85, 0.32, 0.28, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_head"]
+albedo_color = Color(0.93, 0.85, 0.7, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_post"]
+material = SubResource("StandardMaterial3D_post")
+top_radius = 0.06
+bottom_radius = 0.08
+height = 0.6
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+material = SubResource("StandardMaterial3D_body")
+radius = 0.35
+height = 1.2
+
+[sub_resource type="SphereMesh" id="SphereMesh_head"]
+material = SubResource("StandardMaterial3D_head")
+radius = 0.2
+height = 0.4
+
+[node name="TrainingDummy" type="StaticBody3D"]
+script = ExtResource("1_dummy")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+shape = SubResource("CapsuleShape3D_dummy")
+
+[node name="Visual" type="Node3D" parent="."]
+physics_interpolation_mode = 2
+
+[node name="Post" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("CylinderMesh_post")
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("CapsuleMesh_body")
+
+[node name="Head" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, 0)
+mesh = SubResource("SphereMesh_head")
+
+[node name="HealthLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.75, 0)
+billboard = 1
+text = "100 / 100"
+font_size = 48
+outline_size = 12
