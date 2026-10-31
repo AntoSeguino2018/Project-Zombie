@@ -48,7 +48,7 @@ var _death_blend := 0.0
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
-@onready var _weapon: HitscanWeapon = $Camera3D/Weapon
+@onready var _weapon: Weapon = $Camera3D/Weapon
 @onready var _melee: MeleeAttack = $Camera3D/Melee
 @onready var _health: HealthComponent = $Health
 @onready var _hud: PlayerHud = $Hud
@@ -70,6 +70,8 @@ func _ready() -> void:
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
+	_weapon.equipped.connect(func(data: WeaponData): _hud.show_weapon(data.display_name))
+	_hud.show_weapon(_weapon.data.display_name)
 	_health.damaged.connect(_on_damaged)
 	_health.died.connect(_on_died)
 	_hud.bind(_health)
@@ -81,6 +83,14 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event.is_action_pressed("weapon_1"):
+		_weapon.equip(0)
+	elif event.is_action_pressed("weapon_2"):
+		_weapon.equip(1)
+	elif event.is_action_pressed("weapon_next"):
+		_weapon.cycle(1)
+	elif event.is_action_pressed("weapon_prev"):
+		_weapon.cycle(-1)
 	elif event is InputEventMouseButton and event.pressed:
 		_capture_mouse()
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:

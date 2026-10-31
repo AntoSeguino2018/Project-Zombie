@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/weapons/effects/explosion_effect.gd" id="1_explosion"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ball"]
+resource_local_to_scene = true
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 0.62, 0.18, 0.85)
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+radial_segments = 16
+rings = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_debris"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.35, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_debris"]
+material = SubResource("StandardMaterial3D_debris")
+size = Vector3(0.06, 0.06, 0.06)
+
+[node name="ExplosionEffect" type="Node3D"]
+physics_interpolation_mode = 2
+script = ExtResource("1_explosion")
+
+[node name="Ball" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_ball")
+material_override = SubResource("StandardMaterial3D_ball")
+
+[node name="Light" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.65, 0.3, 1)
+light_energy = 6.0
+omni_range = 8.0
+
+[node name="Debris" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 24
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("BoxMesh_debris")
+direction = Vector3(0, 1, 0)
+spread = 90.0
+gravity = Vector3(0, -14, 0)
+initial_velocity_min = 5.0
+initial_velocity_max = 11.0
+scale_amount_min = 0.5

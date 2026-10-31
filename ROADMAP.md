@@ -43,7 +43,7 @@ Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
 - [x] 1.5 Primo nemico: navigazione calcolata all'avvio del livello, inseguimento, attacco in mischia schivabile, spawner provvisori; morte e rinascita del giocatore, barra della vita, bordo rosso quando si subisce danno
 - [x] 1.5b Altri due zombie (Scattista veloce con tuffo, Bestione tank con corazza, punto debole e carica), pugno con il tasto F e passiva "Mano pesante", spinte e stordimento (vedi [DESIGN.md](DESIGN.md))
-- [ ] 1.6 Proiettili fisici
+- [x] 1.6 Proiettili fisici (volo con gravità, controllo anti-attraversamento, esplosioni con danno ad area e spinta), armi hitscan o a proiettili dallo stesso sistema, cambio arma (1/2, rotella) e Lanciagranate prototipo
 - [ ] 1.7 HUD minimo (la barra della vita c'è già) e playtest
 - **Verifica:** il gioco è già divertente per 2 minuti con i cubi? Se no, si sistema qui.
 

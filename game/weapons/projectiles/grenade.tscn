@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/weapons/projectile.gd" id="1_projectile"]
+[ext_resource type="PackedScene" path="res://game/weapons/effects/explosion_effect.tscn" id="2_explosion"]
+[ext_resource type="PackedScene" path="res://game/combat/damage_number.tscn" id="3_damage_number"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shell"]
+albedo_color = Color(0.2, 0.24, 0.2, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glow"]
+shading_mode = 0
+albedo_color = Color(1, 0.6, 0.15, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_shell"]
+material = SubResource("StandardMaterial3D_shell")
+radius = 0.07
+height = 0.14
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_band"]
+material = SubResource("StandardMaterial3D_glow")
+top_radius = 0.074
+bottom_radius = 0.074
+height = 0.03
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trail"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_trail"]
+material = SubResource("StandardMaterial3D_trail")
+size = Vector3(0.05, 0.05, 0.05)
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+colors = PackedColorArray(1, 0.75, 0.35, 0.9, 1, 0.5, 0.2, 0)
+
+[node name="Grenade" type="Node3D"]
+script = ExtResource("1_projectile")
+explosion_scene = ExtResource("2_explosion")
+damage_number_scene = ExtResource("3_damage_number")
+
+[node name="Shell" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_shell")
+
+[node name="Band" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_band")
+
+[node name="Light" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.6, 0.2, 1)
+light_energy = 1.5
+omni_range = 2.5
+
+[node name="Trail" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 24
+lifetime = 0.35
+local_coords = false
+mesh = SubResource("BoxMesh_trail")
+direction = Vector3(0, 0, 0)
+spread = 0.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+scale_amount_min = 0.6
+color_ramp = SubResource("Gradient_trail")

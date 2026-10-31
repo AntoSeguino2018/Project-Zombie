@@ -19,6 +19,7 @@ var _time := 0.0
 @onready var _health_bar: HealthBar = $HealthBar
 @onready var _vignette: ShaderMaterial = $DamageFlash.material
 @onready var _death_label: Label = $DeathLabel
+@onready var _weapon_label: Label = $WeaponLabel
 
 
 func bind(health: HealthComponent) -> void:
@@ -26,6 +27,11 @@ func bind(health: HealthComponent) -> void:
 	health.changed.connect(_health_bar.set_health)
 	health.damaged.connect(_on_damaged)
 	_health_bar.set_health(health.current, health.max_health)
+
+
+## Mostra il nome dell'arma in mano, in basso a destra.
+func show_weapon(weapon_name: String) -> void:
+	_weapon_label.text = weapon_name
 
 
 func show_death() -> void:

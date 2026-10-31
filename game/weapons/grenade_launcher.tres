@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="1_data"]
+[ext_resource type="PackedScene" path="res://game/weapons/viewmodels/grenade_launcher_viewmodel.tscn" id="2_viewmodel"]
+[ext_resource type="PackedScene" path="res://game/weapons/projectiles/grenade.tscn" id="3_grenade"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Lanciagranate prototipo"
+viewmodel = ExtResource("2_viewmodel")
+damage = 20.0
+fire_rate = 1.4
+automatic = false
+max_range = 120.0
+spread_degrees = 0.3
+recoil_pitch_degrees = 4.0
+recoil_yaw_degrees = 1.0
+recoil_recovery = 8.0
+projectile_scene = ExtResource("3_grenade")
+projectile_speed = 28.0
+projectile_gravity = 12.0
+projectile_lifetime = 4.0
+explosion_radius = 3.5
+explosion_damage = 60.0
+explosion_knockback = 9.0
