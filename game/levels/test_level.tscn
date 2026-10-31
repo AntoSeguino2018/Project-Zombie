@@ -6,6 +6,9 @@
 [ext_resource type="Material" path="res://assets/materials/greybox_accent.tres" id="4_accent"]
 [ext_resource type="Material" path="res://assets/materials/greybox_danger.tres" id="5_danger"]
 [ext_resource type="PackedScene" path="res://game/levels/props/training_dummy.tscn" id="6_dummy"]
+[ext_resource type="Script" path="res://game/levels/level_navigation.gd" id="7_navigation"]
+[ext_resource type="Script" path="res://game/enemies/enemy_spawner.gd" id="8_spawner"]
+[ext_resource type="PackedScene" path="res://game/enemies/walker.tscn" id="9_walker"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -19,6 +22,14 @@ background_mode = 2
 sky = SubResource("Sky_main")
 tonemap_mode = 2
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_level"]
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"navigation_source"
+agent_height = 1.75
+agent_radius = 0.5
+agent_max_climb = 0.25
+agent_max_slope = 40.0
+
 [node name="TestLevel" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -31,7 +42,11 @@ shadow_enabled = true
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 
-[node name="Geometry" type="Node3D" parent="."]
+[node name="Navigation" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_level")
+script = ExtResource("7_navigation")
+
+[node name="Geometry" type="Node3D" parent="." groups=["navigation_source"]]
 
 [node name="Floor" type="CSGBox3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -184,6 +199,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -32)
 
 [node name="DummyHigh" parent="Dummies" instance=ExtResource("6_dummy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3, -17)
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="SpawnerNorthWest" type="Marker3D" parent="Enemies"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -34)
+script = ExtResource("8_spawner")
+enemy_scene = ExtResource("9_walker")
+initial_delay = 3.0
+
+[node name="SpawnerNorthEast" type="Marker3D" parent="Enemies"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, -34)
+script = ExtResource("8_spawner")
+enemy_scene = ExtResource("9_walker")
+initial_delay = 6.0
+
+[node name="SpawnerSouth" type="Marker3D" parent="Enemies"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 34)
+script = ExtResource("8_spawner")
+enemy_scene = ExtResource("9_walker")
+initial_delay = 10.0
 
 [node name="Labels" type="Node3D" parent="."]
 

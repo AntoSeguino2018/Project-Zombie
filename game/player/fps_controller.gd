@@ -23,23 +23,38 @@ extends CharacterBody3D
 ## Quanto si può guardare in alto o in basso, in gradi.
 @export_range(10.0, 89.0) var max_pitch_degrees := 89.0
 
+@export_group("Vita")
+## Secondi da morto prima di rinascere al punto di partenza.
+@export var respawn_time := 3.0
+## Sotto questa quota si muore: si è caduti fuori dal livello.
+@export var kill_height := -30.0
+## Di quanto scende la visuale da morti, in metri.
+@export var death_camera_drop := 1.2
+
 var _yaw := 0.0
 var _pitch := 0.0
 ## Spostamento della visuale dovuto al rinculo (x = alto/basso, y = lati), in
 ## radianti. Si somma alla mira e torna a zero da solo.
 var _recoil := Vector2.ZERO
+var _spawn_transform: Transform3D
+var _respawn_left := 0.0
+## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si muore.
+var _death_blend := 0.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
 @onready var _weapon: HitscanWeapon = $Camera3D/Weapon
-@onready var _hud: CanvasLayer = $Hud
-@onready var _crosshair: Crosshair = $Hud/Crosshair
+@onready var _health: HealthComponent = $Health
+@onready var _hud: PlayerHud = $Hud
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
 func _ready() -> void:
+	# I nemici cercano i bersagli in questo gruppo.
+	add_to_group("players")
 	_yaw = rotation.y
+	_spawn_transform = global_transform
 	if not is_multiplayer_authority():
 		_weapon.visible = false
 		_hud.visible = false
@@ -48,7 +63,10 @@ func _ready() -> void:
 		return
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-	_weapon.dealt_damage.connect(func(_target, _amount, killed): _crosshair.show_hit(killed))
+	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
+	_health.damaged.connect(_on_damaged)
+	_health.died.connect(_on_died)
+	_hud.bind(_health)
 	_camera.make_current()
 	_capture_mouse()
 	_update_camera()
@@ -68,11 +86,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_recoil = _recoil.lerp(Vector2.ZERO, 1.0 - exp(-_weapon.data.recoil_recovery * delta))
+	if not _health.is_alive():
+		_death_blend = move_toward(_death_blend, 1.0, delta / 0.4)
 	_update_camera()
 
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
+		return
+	if not _health.is_alive():
+		_physics_process_dead(delta)
 		return
 	rotation.y = _yaw
 
@@ -92,6 +115,48 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_handle_fire()
+	if global_position.y < kill_height:
+		_health.take_damage(_health.current)
+
+
+## Da morti si resta fermi (cadendo, se si è in aria) fino alla rinascita.
+func _physics_process_dead(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y -= _gravity * gravity_multiplier * delta
+	velocity.x = 0.0
+	velocity.z = 0.0
+	move_and_slide()
+	_respawn_left -= delta
+	_hud.update_respawn_countdown(_respawn_left)
+	if _respawn_left <= 0.0:
+		_respawn()
+
+
+func _on_damaged(_amount: float, _source: Node, _hit_position: Vector3) -> void:
+	# Un piccolo scossone della visuale: si capisce subito di essere stati colpiti.
+	_recoil += Vector2(deg_to_rad(2.0), deg_to_rad(randf_range(-1.5, 1.5)))
+
+
+func _on_died(_source: Node) -> void:
+	_respawn_left = respawn_time
+	_weapon.visible = false
+	_hud.show_death()
+	_hud.update_respawn_countdown(_respawn_left)
+
+
+## Torna al punto di partenza con la vita piena.
+## In multiplayer sarà l'host a decidere quando e dove si rinasce.
+func _respawn() -> void:
+	global_transform = _spawn_transform
+	velocity = Vector3.ZERO
+	_yaw = _spawn_transform.basis.get_euler().y
+	_pitch = 0.0
+	_recoil = Vector2.ZERO
+	_death_blend = 0.0
+	reset_physics_interpolation()
+	_health.reset()
+	_weapon.visible = true
+	_hud.hide_death()
 
 
 func _handle_fire() -> void:
@@ -115,7 +180,13 @@ func _aim_basis() -> Basis:
 
 func _update_camera() -> void:
 	var eye := _head.get_global_transform_interpolated().origin
-	_camera.global_transform = Transform3D(_aim_basis(), eye)
+	var aim := _aim_basis()
+	if _death_blend > 0.0:
+		# Da morti la visuale crolla verso terra e si inclina di lato.
+		var t := smoothstep(0.0, 1.0, _death_blend)
+		eye.y -= death_camera_drop * t
+		aim = aim * Basis(Vector3.BACK, deg_to_rad(25.0) * t)
+	_camera.global_transform = Transform3D(aim, eye)
 
 
 func _capture_mouse() -> void:

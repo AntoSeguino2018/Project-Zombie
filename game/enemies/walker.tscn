@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/enemies/melee_enemy.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://game/combat/health_component.gd" id="2_health"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skin"]
+albedo_color = Color(0.5, 0.74, 0.38, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shirt"]
+albedo_color = Color(0.46, 0.33, 0.62, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pants"]
+albedo_color = Color(0.26, 0.3, 0.42, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eyes"]
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_leg"]
+material = SubResource("StandardMaterial3D_pants")
+size = Vector3(0.2, 0.75, 0.24)
+
+[sub_resource type="BoxMesh" id="BoxMesh_torso"]
+material = SubResource("StandardMaterial3D_shirt")
+size = Vector3(0.62, 0.72, 0.36)
+
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+material = SubResource("StandardMaterial3D_skin")
+size = Vector3(0.38, 0.36, 0.36)
+
+[sub_resource type="BoxMesh" id="BoxMesh_eye"]
+material = SubResource("StandardMaterial3D_eyes")
+size = Vector3(0.08, 0.05, 0.02)
+
+[sub_resource type="BoxMesh" id="BoxMesh_arm"]
+material = SubResource("StandardMaterial3D_skin")
+size = Vector3(0.15, 0.15, 0.66)
+
+[node name="Walker" type="CharacterBody3D"]
+floor_snap_length = 0.3
+script = ExtResource("1_enemy")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 60.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.0
+target_desired_distance = 1.0
+path_max_distance = 3.0
+radius = 0.5
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="LegLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.375, 0)
+mesh = SubResource("BoxMesh_leg")
+
+[node name="LegRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.375, 0)
+mesh = SubResource("BoxMesh_leg")
+
+[node name="Torso" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.11, 0)
+mesh = SubResource("BoxMesh_torso")
+
+[node name="Head" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.66, -0.06)
+mesh = SubResource("BoxMesh_head")
+
+[node name="EyeLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 1.7, -0.245)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_eye")
+
+[node name="EyeRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 1.7, -0.245)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_eye")
+
+[node name="Arms" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.36, 0)
+
+[node name="ArmLeft" type="MeshInstance3D" parent="Visual/Arms"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.39, 0, -0.3)
+mesh = SubResource("BoxMesh_arm")
+
+[node name="ArmRight" type="MeshInstance3D" parent="Visual/Arms"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.39, 0, -0.3)
+mesh = SubResource("BoxMesh_arm")
