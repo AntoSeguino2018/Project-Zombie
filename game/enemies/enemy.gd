@@ -293,7 +293,8 @@ func _on_damaged(_amount: float, _source: Node, _hit_position: Vector3) -> void:
 	create_tween().tween_property(_flash, "albedo_color:a", 0.0, 0.12)
 
 
-func _on_died(_source: Node) -> void:
+func _on_died(source: Node) -> void:
+	CombatEvents.bus.enemy_killed.emit(self, source)
 	_leave_attack()
 	_set_state(State.DEAD)
 	# Il corpo non blocca più nessuno e non si può colpire, ma cade ancora a terra.

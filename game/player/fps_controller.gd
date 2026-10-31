@@ -44,6 +44,10 @@ var _spawn_transform: Transform3D
 var _respawn_left := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si muore.
 var _death_blend := 0.0
+## Statistiche della vita in corso, per l'HUD e la schermata di morte.
+var _kills := 0
+var _alive_time := 0.0
+var _best_time := 0.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
@@ -70,8 +74,8 @@ func _ready() -> void:
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
-	_weapon.equipped.connect(func(data: WeaponData): _hud.show_weapon(data.display_name))
-	_hud.show_weapon(_weapon.data.display_name)
+	_hud.bind_weapon(_weapon)
+	CombatEvents.bus.enemy_killed.connect(_on_enemy_killed)
 	_health.damaged.connect(_on_damaged)
 	_health.died.connect(_on_died)
 	_hud.bind(_health)
@@ -83,6 +87,8 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event.is_action_pressed("reload"):
+		_weapon.start_reload()
 	elif event.is_action_pressed("weapon_1"):
 		_weapon.equip(0)
 	elif event.is_action_pressed("weapon_2"):
@@ -114,6 +120,8 @@ func _physics_process(delta: float) -> void:
 		_physics_process_dead(delta)
 		return
 	rotation.y = _yaw
+	_alive_time += delta
+	_hud.update_stats(_kills, _alive_time)
 
 	if is_on_floor():
 		if Input.is_action_just_pressed("jump"):
@@ -166,15 +174,24 @@ func apply_knockback(impulse: Vector3) -> void:
 	velocity.y = maxf(velocity.y, impulse.y)
 
 
-func _on_damaged(_amount: float, _source: Node, _hit_position: Vector3) -> void:
+func _on_damaged(_amount: float, source: Node, _hit_position: Vector3) -> void:
 	# Un piccolo scossone della visuale: si capisce subito di essere stati colpiti.
 	_recoil += Vector2(deg_to_rad(2.0), deg_to_rad(randf_range(-1.5, 1.5)))
+	if source is Node3D and source != self:
+		_hud.show_damage_from(source.global_position)
+
+
+func _on_enemy_killed(_enemy: Node, killer: Node) -> void:
+	if killer == self and _health.is_alive():
+		_kills += 1
+		_hud.update_stats(_kills, _alive_time)
 
 
 func _on_died(_source: Node) -> void:
 	_respawn_left = respawn_time
 	_weapon.visible = false
-	_hud.show_death()
+	_best_time = maxf(_best_time, _alive_time)
+	_hud.show_death(_kills, _alive_time, _best_time)
 	_hud.update_respawn_countdown(_respawn_left)
 
 
@@ -191,10 +208,16 @@ func _respawn() -> void:
 	reset_physics_interpolation()
 	_health.reset()
 	_weapon.visible = true
+	_kills = 0
+	_alive_time = 0.0
+	_hud.update_stats(_kills, _alive_time)
 	_hud.hide_death()
 
 
 func _handle_fire() -> void:
+	# Caricatore vuoto (per esempio dopo un cambio arma): si ricarica da solo.
+	if _weapon.ammo() == 0:
+		_weapon.start_reload()
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or not _weapon.can_fire():
 		return
 	var trigger := Input.is_action_pressed("fire") if _weapon.data.automatic \

@@ -18,6 +18,10 @@ extends Resource
 @export var max_range := 200.0
 ## Dispersione massima di ogni colpo attorno al mirino, in gradi.
 @export var spread_degrees := 0.6
+## Colpi nel caricatore (0 = infiniti). Per ora la riserva è infinita.
+@export var magazine_size := 30
+## Secondi per ricaricare.
+@export var reload_time := 1.5
 
 @export_group("Rinculo")
 ## Quanto sale la visuale a ogni colpo, in gradi.

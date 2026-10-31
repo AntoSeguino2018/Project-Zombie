@@ -1,8 +1,8 @@
 class_name Weapon
 extends Node3D
 ## Arma in mano al giocatore. A seconda dei suoi dati spara colpi istantanei
-## (hitscan) oppure proiettili fisici. Tiene anche le armi portate (loadout) e
-## gestisce il cambio.
+## (hitscan) oppure proiettili fisici. Tiene anche le armi portate (loadout),
+## gestisce il cambio, i caricatori e la ricarica (automatica quando si svuota).
 ##
 ## Il nodo sta sotto la camera e contiene il modello in prima persona dell'arma
 ## equipaggiata: a ogni colpo arretra e si alza, poi torna in posizione.
@@ -46,6 +46,9 @@ var data: WeaponData
 var muzzle: Node3D
 
 var _slot := -1
+## Colpi rimasti nel caricatore di ogni arma del loadout.
+var _ammo: Array[int] = []
+var _reload_left := 0.0
 var _model: Node3D
 var _cooldown := 0.0
 var _kick := 0.0
@@ -55,6 +58,8 @@ var _rest_position := Vector3.ZERO
 
 func _ready() -> void:
 	_rest_position = position
+	for weapon_data in loadout:
+		_ammo.append(weapon_data.magazine_size)
 	if not loadout.is_empty():
 		equip(0)
 		_switch_left = 0.0
@@ -65,14 +70,22 @@ func _physics_process(delta: float) -> void:
 	# resta quella impostata anche se non è un multiplo dei 60 Hz della fisica.
 	_cooldown = maxf(_cooldown - delta, -delta)
 	_switch_left = maxf(_switch_left - delta, 0.0)
+	if _reload_left > 0.0:
+		_reload_left -= delta
+		if _reload_left <= 0.0:
+			_reload_left = 0.0
+			_ammo[_slot] = data.magazine_size
 
 
 func _process(delta: float) -> void:
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-kick_recovery * delta))
 	# Durante il cambio l'arma scende fuori dallo schermo e risale.
 	var lowered := _switch_left / switch_time if switch_time > 0.0 else 0.0
-	position = _rest_position + Vector3(0.0, -0.3 * lowered, _kick * kick_distance)
-	rotation.x = deg_to_rad(_kick * kick_angle_degrees) - 0.6 * lowered
+	# In ricarica l'arma si abbassa e si inclina di lato, poi torna su.
+	var reloading := sin(reload_progress() * PI) if is_reloading() else 0.0
+	position = _rest_position + Vector3(0.0, -0.3 * lowered - 0.1 * reloading, _kick * kick_distance)
+	rotation.x = deg_to_rad(_kick * kick_angle_degrees) - 0.6 * lowered - 0.3 * reloading
+	rotation.z = 0.6 * reloading
 
 
 ## Prende in mano l'arma nello slot indicato del loadout.
@@ -89,6 +102,8 @@ func equip(slot: int) -> void:
 		add_child(_model)
 		muzzle = _model.get_node_or_null("Muzzle")
 	_switch_left = switch_time
+	# Cambiare arma interrompe la ricarica.
+	_reload_left = 0.0
 	_cooldown = maxf(_cooldown, 0.0)
 	_kick = 0.0
 	equipped.emit(data)
@@ -105,19 +120,48 @@ func current_slot() -> int:
 
 
 func can_fire() -> bool:
-	return data != null and _cooldown <= 0.0 and _switch_left <= 0.0
+	return data != null and _cooldown <= 0.0 and _switch_left <= 0.0 			and not is_reloading() and (ammo() > 0 or data.magazine_size <= 0)
+
+
+## Colpi rimasti nel caricatore dell'arma in mano.
+func ammo() -> int:
+	return _ammo[_slot] if _slot >= 0 and _slot < _ammo.size() else 0
+
+
+func is_reloading() -> bool:
+	return _reload_left > 0.0
+
+
+## Da 0 (appena iniziata) a 1 (finita).
+func reload_progress() -> float:
+	if not is_reloading() or data.reload_time <= 0.0:
+		return 0.0
+	return 1.0 - _reload_left / data.reload_time
+
+
+## Inizia a ricaricare, se serve e se non si sta già ricaricando.
+func start_reload() -> void:
+	if data == null or data.magazine_size <= 0 or is_reloading() or _switch_left > 0.0:
+		return
+	if ammo() >= data.magazine_size:
+		return
+	_reload_left = maxf(data.reload_time, 0.01)
 
 
 ## Spara un colpo da origin verso direction. exclude: corpi da ignorare (chi spara).
 func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void:
 	_cooldown += 1.0 / data.fire_rate
 	_kick = 1.0
+	if data.magazine_size > 0 and _slot < _ammo.size():
+		_ammo[_slot] = maxi(_ammo[_slot] - 1, 0)
 	var shot_direction := _apply_spread(direction.normalized())
 	if data.projectile_scene:
 		_fire_projectile(origin, shot_direction, exclude)
 	else:
 		_fire_hitscan(origin, shot_direction, exclude)
 	fired.emit()
+	if data.magazine_size > 0 and ammo() == 0:
+		start_reload()
 
 
 func _fire_hitscan(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> void:

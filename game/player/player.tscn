@@ -5,6 +5,8 @@
 [ext_resource type="Resource" path="res://game/weapons/carbine.tres" id="3_carbine"]
 [ext_resource type="Resource" path="res://game/weapons/grenade_launcher.tres" id="13_grenade_launcher"]
 [ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="14_weapon_data"]
+[ext_resource type="Script" path="res://game/ui/ammo_display.gd" id="15_ammo"]
+[ext_resource type="Script" path="res://game/ui/damage_indicator.gd" id="16_damage_indicator"]
 [ext_resource type="PackedScene" path="res://game/weapons/effects/impact_effect.tscn" id="4_impact"]
 [ext_resource type="PackedScene" path="res://game/weapons/effects/tracer.tscn" id="5_tracer"]
 [ext_resource type="Script" path="res://game/ui/crosshair.gd" id="6_crosshair"]
@@ -104,6 +106,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="DamageIndicator" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("16_damage_indicator")
+
 [node name="Crosshair" type="Control" parent="Hud"]
 layout_mode = 3
 anchors_preset = 15
@@ -159,3 +171,47 @@ theme_override_font_sizes/font_size = 22
 text = "Arma"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="AmmoDisplay" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -332.0
+offset_top = -140.0
+offset_right = -32.0
+offset_bottom = -72.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("15_ammo")
+
+[node name="StatsLabel" type="Label" parent="Hud"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -432.0
+offset_top = 24.0
+offset_right = -32.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 24
+text = "0 uccisioni   0:00"
+horizontal_alignment = 2
+
+[node name="ControlsLabel" type="Label" parent="Hud"]
+offset_left = 32.0
+offset_top = 24.0
+offset_right = 632.0
+offset_bottom = 224.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 18
+text = "WASD muoviti   ·   Spazio salta   ·   Shift corri
+Click sinistro spara   ·   R ricarica   ·   F pugno
+1 / 2 o rotella cambia arma   ·   Esc libera il mouse"
