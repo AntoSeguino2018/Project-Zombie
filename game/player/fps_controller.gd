@@ -2,8 +2,10 @@ class_name FpsController
 extends CharacterBody3D
 ## Controller in prima persona: movimento, salto, sprint e visuale col mouse.
 ##
-## Predisposto per la rete: input e camera sono attivi solo sul giocatore che ha
-## l'autorità su questo nodo (in single player è sempre quello locale).
+## In rete il nodo si chiama come l'id del partecipante che lo controlla: lui
+## ne ha l'autorità (input, camera, movimento) e invia il suo stato con
+## MultiplayerSynchronizer; sugli altri il giocatore insegue quello stato in
+## modo morbido. Da soli il giocatore è sempre quello locale.
 ## La camera è top_level e segue la testa interpolata, così il movimento resta
 ## fluido anche su monitor a più di 60 Hz, mentre la rotazione del mouse è immediata.
 
@@ -25,6 +27,13 @@ extends CharacterBody3D
 ## Quanto si può guardare in alto o in basso, in gradi.
 @export_range(10.0, 89.0) var max_pitch_degrees := 89.0
 
+@export_group("Rete")
+## Rapidità con cui un giocatore remoto raggiunge l'ultima posizione ricevuta.
+@export var remote_smoothing := 18.0
+## Colori dei giocatori, nell'ordine di arrivo nella partita.
+@export var player_colors: Array[Color] = [Color(0.95, 0.55, 0.2), Color(0.3, 0.7, 0.95),
+		Color(0.55, 0.85, 0.35), Color(0.9, 0.4, 0.75)]
+
 @export_group("Vita")
 ## Secondi da morto prima di rinascere al punto di partenza.
 @export var respawn_time := 3.0
@@ -32,6 +41,13 @@ extends CharacterBody3D
 @export var kill_height := -30.0
 ## Di quanto scende la visuale da morti, in metri.
 @export var death_camera_drop := 1.2
+
+## Numero del giocatore nella partita (1-4): decide colore e nome.
+var player_number := 1
+## Stato condiviso in rete: lo scrive chi controlla il giocatore, gli altri lo inseguono.
+var sync_position := Vector3.ZERO
+var sync_yaw := 0.0
+var sync_pitch := 0.0
 
 var _yaw := 0.0
 var _pitch := 0.0
@@ -52,6 +68,8 @@ var _best_time := 0.0
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
+@onready var _visor: MeshInstance3D = $Visor
+@onready var _name_tag: Label3D = $NameTag
 @onready var _weapon: Weapon = $Camera3D/Weapon
 @onready var _melee: MeleeAttack = $Camera3D/Melee
 @onready var _health: HealthComponent = $Health
@@ -59,11 +77,21 @@ var _best_time := 0.0
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
+func _enter_tree() -> void:
+	# In rete il nome è l'id del partecipante che controlla questo giocatore.
+	if name.is_valid_int():
+		set_multiplayer_authority(name.to_int())
+
+
 func _ready() -> void:
 	# I nemici cercano i bersagli in questo gruppo.
 	add_to_group("players")
 	_yaw = rotation.y
 	_spawn_transform = global_transform
+	sync_position = global_position
+	sync_yaw = _yaw
+	_apply_player_color()
+	_name_tag.text = "Giocatore %d" % player_number
 	if not is_multiplayer_authority():
 		_weapon.visible = false
 		_hud.visible = false
@@ -72,6 +100,8 @@ func _ready() -> void:
 		return
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
 	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	_visor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	_name_tag.visible = false
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_hud.bind_weapon(_weapon)
@@ -115,9 +145,11 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
+		_follow_remote_state(delta)
 		return
 	if not _health.is_alive():
 		_physics_process_dead(delta)
+		_publish_state()
 		return
 	rotation.y = _yaw
 	_alive_time += delta
@@ -144,6 +176,35 @@ func _physics_process(delta: float) -> void:
 	_handle_melee()
 	if global_position.y < kill_height:
 		_health.take_damage(_health.current)
+	_publish_state()
+
+
+## Scrive lo stato che MultiplayerSynchronizer invia agli altri partecipanti.
+func _publish_state() -> void:
+	sync_position = global_position
+	sync_yaw = _yaw
+	sync_pitch = _pitch
+
+
+## Sugli altri partecipanti il giocatore insegue morbidamente l'ultimo stato
+## ricevuto: niente scatti anche se i pacchetti arrivano a ritmo irregolare.
+func _follow_remote_state(delta: float) -> void:
+	var weight := 1.0 - exp(-remote_smoothing * delta)
+	# Un salto grande (rinascita, teletrasporto) si applica subito.
+	if global_position.distance_to(sync_position) > 4.0:
+		global_position = sync_position
+		reset_physics_interpolation()
+	else:
+		global_position = global_position.lerp(sync_position, weight)
+	rotation.y = lerp_angle(rotation.y, sync_yaw, weight)
+
+
+func _apply_player_color() -> void:
+	var player_color := player_colors[(player_number - 1) % player_colors.size()]
+	var material := StandardMaterial3D.new()
+	material.albedo_color = player_color
+	_body_mesh.material_override = material
+	_name_tag.modulate = player_color.lightened(0.3)
 
 
 ## Da morti si resta fermi (cadendo, se si è in aria) fino alla rinascita.

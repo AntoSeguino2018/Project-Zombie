@@ -16,8 +16,9 @@ signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
 ## È stata presa in mano un'altra arma.
 signal equipped(data: WeaponData)
 
-## Mondo e nemici: i proiettili non colpiscono i compagni.
-const PROJECTILE_MASK := 1 | 4
+## Mondo e nemici: colpi e proiettili attraversano i compagni (niente fuoco
+## amico) e i detriti.
+const TARGET_MASK := 1 | 4
 
 ## Armi portate; si parte con la prima.
 @export var loadout: Array[WeaponData] = []:
@@ -166,7 +167,7 @@ func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void
 
 func _fire_hitscan(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> void:
 	var end := origin + direction * data.max_range
-	var result := _raycast(origin, end, exclude, 0xFFFFFFFF)
+	var result := _raycast(origin, end, exclude, TARGET_MASK)
 	if result:
 		end = result.position
 		_spawn_impact(result.position, result.normal)
@@ -178,12 +179,12 @@ func _fire_hitscan(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> 
 func _fire_projectile(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> void:
 	# Il proiettile parte dalla canna ma va verso il punto sotto il mirino.
 	var target := origin + direction * data.max_range
-	var aim := _raycast(origin, target, exclude, PROJECTILE_MASK)
+	var aim := _raycast(origin, target, exclude, TARGET_MASK)
 	if aim:
 		target = aim.position
 	var start := muzzle.global_position if muzzle else origin
 	# Se la canna è dentro un muro, parte dalla testa: niente colpi attraverso i muri.
-	if _raycast(origin, start, exclude, PROJECTILE_MASK):
+	if _raycast(origin, start, exclude, TARGET_MASK):
 		start = origin
 	var launch_direction := direction
 	if start.distance_to(target) > 1.0:
@@ -192,7 +193,7 @@ func _fire_projectile(origin: Vector3, direction: Vector3, exclude: Array[RID]) 
 	var projectile: Projectile = data.projectile_scene.instantiate()
 	get_tree().current_scene.add_child(projectile)
 	projectile.dealt_damage.connect(_on_projectile_dealt_damage)
-	projectile.launch(start, launch_direction, data, owner, exclude, PROJECTILE_MASK)
+	projectile.launch(start, launch_direction, data, owner, exclude, TARGET_MASK)
 
 
 func _apply_spread(direction: Vector3) -> Vector3:

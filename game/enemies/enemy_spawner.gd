@@ -19,7 +19,8 @@ var _timer := Timer.new()
 
 
 func _ready() -> void:
-	if not is_multiplayer_authority():
+	# In rete i nemici arriveranno con il passo 2.3 (simulati dall'host).
+	if not is_multiplayer_authority() or NetSession.is_online():
 		return
 	_timer.one_shot = true
 	_timer.timeout.connect(_on_timer)

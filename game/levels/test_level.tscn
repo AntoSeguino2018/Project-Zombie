@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://game/enemies/runner.tscn" id="10_runner"]
 [ext_resource type="PackedScene" path="res://game/enemies/brute.tscn" id="11_brute"]
 [ext_resource type="Script" path="res://game/levels/destructible/destructible_blocks.gd" id="12_destructible"]
+[ext_resource type="Script" path="res://game/net/player_spawner.gd" id="13_player_spawner"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -35,6 +36,11 @@ agent_max_slope = 40.0
 
 [node name="TestLevel" type="Node3D"]
 
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Players")
+script = ExtResource("13_player_spawner")
+player_scene = ExtResource("1_player")
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
 
@@ -42,8 +48,7 @@ environment = SubResource("Environment_main")
 transform = Transform3D(0.866025, -0.383022, 0.321394, 0, 0.642788, 0.766044, -0.5, -0.663414, 0.556670, 0, 10, 0)
 shadow_enabled = true
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+[node name="Players" type="Node3D" parent="."]
 
 [node name="Navigation" type="NavigationRegion3D" parent="."]
 navigation_mesh = SubResource("NavigationMesh_level")

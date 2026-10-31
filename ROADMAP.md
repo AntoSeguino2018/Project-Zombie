@@ -38,7 +38,7 @@ Obiettivo: FPS roguelike in prima persona sugli zombie, grafica low-poly colorat
 ### Fase 1: Prototipo FPS in greybox (~30–50 ore)
 Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.1 Controller FPS base: movimento, salto, sprint, mouse look, gravità + livello di prova in greybox
-- [ ] 1.2 Sensazione del movimento: accelerazione/attrito, coyote time, jump buffer, FOV nello sprint, head bob *(rimandato a quando ci saranno nemici)*
+- [x] 1.2 Sensazione del movimento: al playtest il movimento funziona bene così; ritocchi (coyote time, FOV nello sprint…) solo se serviranno
 - [x] 1.3 Prima arma: sparo hitscan, cadenza, dispersione, rinculo, mirino, scia e impatti, arma in prima persona
 - [x] 1.4 Salute e danno: componente vita unico, manichini bersaglio, numeri di danno, hitmarker
 - [x] 1.5 Primo nemico: navigazione calcolata all'avvio del livello, inseguimento, attacco in mischia schivabile, spawner provvisori; morte e rinascita del giocatore, barra della vita, bordo rosso quando si subisce danno
@@ -46,16 +46,29 @@ Tutto con cubi e capsule, zero grafica definitiva.
 - [x] 1.6 Proiettili fisici (volo con gravità, controllo anti-attraversamento, esplosioni con danno ad area e spinta), armi hitscan o a proiettili dallo stesso sistema, cambio arma (1/2, rotella) e Lanciagranate prototipo
 - [x] 1.7 HUD minimo: munizioni e ricarica, arma in mano, uccisioni e tempo di sopravvivenza, direzione del danno, comandi all'avvio, riepilogo alla morte con record
 - [x] 1.8 Strutture distruttibili a blocchi (muri, colonne, coperture): si rompono con granate, pugni, zombie scaraventati e carica del Bestione, blocchi da 0,25 m, i pezzi senza appoggio crollano e restano a terra come macerie permanenti, la navigazione si ricalcola
-- [ ] 1.9 Playtest con i cubi e ritocchi in base alle impressioni
-- **Verifica:** il gioco è già divertente per 2 minuti con i cubi? Se no, si sistema qui.
+- [x] 1.9 Playtest con i cubi
+- **Verifica superata.** Esito del playtest:
+  - Ci si annoia presto solo perché manca la parte roguelike (run, progressione, obiettivi): è la Fase 3.
+  - Morti tutte giustificate: nemici leggibili e attacchi schivabili funzionano.
+  - Movimento: funziona bene.
+  - Zombie: funzionano; più avanti roster più ampio, animazioni e dettagli.
+  - Armi: da ribilanciare più avanti.
+  - Distruzione: per ora cambia il modo di giocare solo nella fuga; da ampliare.
+
+### Idee raccolte (da collocare nelle fasi giuste)
+- Arrampicata: aggrapparsi ai bordi e scavalcare (mantle), forse arrampicarsi su superfici apposite
+- Ribilanciamento delle armi (insieme al sistema oggetti della Fase 3)
+- Più tipi di zombie, animazioni e dettagli (Fasi 5 e 6)
+- Distruzione come meccanica più centrale: armi da demolizione, obiettivi da abbattere, zombie che sfondano, materiali con resistenze diverse
 
 ### Fase 2: Fondamenta di rete (~50–80 ore)
-- [ ] Host / join via IP, fino a 4 giocatori
-- [ ] Sincronizzazione giocatori (movimento con interpolazione e previsione locale)
-- [ ] Sparo e danno validati dall'host
-- [ ] Nemici simulati solo dall'host e replicati ai client
-- [ ] Test con 4 istanze sul tuo PC, poi con amici su internet
-- [ ] Integrazione Steam (lobby, inviti, relay)
+Modello: ognuno muove il proprio giocatore (risposta immediata), l'host decide tutto il resto (nemici, danni, distruzione, oggetti).
+- [x] 2.1 Menu (solo / ospita / entra via IP), un giocatore per partecipante (fino a 4), movimento sincronizzato con interpolazione, colori, visiera e nomi *(in rete gli zombie sono spenti fino al 2.3)*
+- [ ] 2.2 Combattimento in rete: sparo, pugni e danni decisi dall'host, effetti visti da tutti, vita, morte e rinascita sincronizzate
+- [ ] 2.3 Nemici simulati solo dall'host e replicati ai client (posizione, attacchi, morte)
+- [ ] 2.4 Proiettili, esplosioni e strutture distruttibili sincronizzati
+- [ ] 2.5 Test con 4 istanze sul tuo PC, poi con amici su internet
+- [ ] 2.6 Integrazione Steam (lobby, inviti, relay) *(può slittare dopo la Fase 3)*
 
 ### Fase 3: Core loop roguelike (~60–100 ore)
 - [ ] Struttura della run: livello → obiettivo → livello successivo → fine run
