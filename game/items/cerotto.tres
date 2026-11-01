@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveItem" format=3]
+
+[ext_resource type="Script" path="res://game/items/passive_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Cerotto"
+stat = "kill_heal"
+per_stack = 3.0
+percent = false
+effect_label = "vita per uccisione"
+color = Color(0.95, 0.75, 0.6, 1)
+weight = 1.0

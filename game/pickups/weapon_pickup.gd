@@ -6,12 +6,17 @@ extends StaticBody3D
 ## Sta sul layer degli oggetti interagibili: i giocatori ci passano attraverso,
 ## i colpi pure. In rete la crea e la toglie solo l'host (PickupReplicator).
 
+## Secondi prima che un'arma lasciata a terra sparisca (0 = mai). Le armi
+## delle casse le toglie la cassa quando si richiude.
+@export var lifetime := 120.0
+
 ## Arma contenuta, come spec di WeaponCatalog.
 var spec: Array = ["pistol"]
 var weapon_data: WeaponData
 
 var _taken := false
 var _time := 0.0
+var _start_time := 0.0
 
 @onready var _model_pivot: Node3D = $ModelPivot
 @onready var _label: Label3D = $Label
@@ -33,10 +38,13 @@ func _ready() -> void:
 	beam_material.albedo_color = Color(color, beam_material.albedo_color.a)
 	_beam.material_override = beam_material
 	_time = randf() * TAU
+	_start_time = _time
 
 
 func _process(delta: float) -> void:
 	_time += delta
+	if lifetime > 0.0 and _time >= lifetime + _start_time and multiplayer.is_server():
+		queue_free()
 	_model_pivot.rotation.y = _time * 1.5
 	_model_pivot.position.y = 0.08 * sin(_time * 2.0)
 
@@ -54,7 +62,7 @@ func interaction_text(player: FpsController) -> String:
 
 
 ## Sull'host: il giocatore la raccoglie; se aveva le mani piene, l'arma che
-## aveva in mano (slot) resta a terra al suo posto.
+## aveva in mano (slot) resta a terra ai suoi piedi.
 func interact(player: FpsController, slot: int) -> void:
 	if _taken:
 		return
@@ -63,5 +71,12 @@ func interact(player: FpsController, slot: int) -> void:
 	if not dropped.is_empty():
 		var replicator := PickupReplicator.of(self)
 		if replicator:
-			replicator.spawn_pickup(dropped, global_position)
+			replicator.spawn_pickup(dropped, drop_point(player))
 	queue_free()
+
+
+## Dove lasciare un'arma: ai piedi del giocatore. Non dove era quella raccolta
+## (sopra una cassa coprirebbe l'arma successiva) né davanti (starebbe tra il
+## giocatore e quello che guarda).
+static func drop_point(player: FpsController) -> Vector3:
+	return player.global_position + Vector3.UP * 0.5

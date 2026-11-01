@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveItem" format=3]
+
+[ext_resource type="Script" path="res://game/items/passive_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Dita da pianista"
+stat = "reload_speed"
+per_stack = 0.15
+percent = true
+effect_label = "velocità di ricarica"
+color = Color(0.4, 0.7, 1.0, 1)
+weight = 1.0

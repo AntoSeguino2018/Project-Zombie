@@ -105,9 +105,15 @@ static func roll(rng: RandomNumberGenerator) -> Array:
 	return spec
 
 
+## Armi base già caricate, tenute in memoria (id -> WeaponData).
+static var _bases := {}
+
+
 ## L'arma base id, così com'è nel suo file (da non modificare).
 static func base(id: String) -> WeaponData:
-	return load(BASES[id])
+	if not _bases.has(id):
+		_bases[id] = load(BASES[id])
+	return _bases[id]
 
 
 static func rarity_color(data: WeaponData) -> Color:

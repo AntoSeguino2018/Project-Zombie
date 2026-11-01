@@ -57,9 +57,10 @@ const MAX_WEAPONS := 2
 var data: WeaponData
 ## Punto da cui partono scia e proiettili (la bocca dell'arma in mano).
 var muzzle: Node3D
-## Moltiplicatori dei boost delle macchinette (li imposta il giocatore).
+## Moltiplicatori di boost e oggetti (li imposta il giocatore).
 var fire_rate_multiplier := 1.0
 var reload_speed_multiplier := 1.0
+var magazine_multiplier := 1.0
 
 var _slot := -1
 ## Colpi rimasti nel caricatore di ogni arma del loadout.
@@ -75,7 +76,7 @@ var _rest_position := Vector3.ZERO
 func _ready() -> void:
 	_rest_position = position
 	for weapon_data in loadout:
-		_ammo.append(weapon_data.magazine_size)
+		_ammo.append(magazine_of(weapon_data))
 	if not loadout.is_empty():
 		equip(0)
 		_switch_left = 0.0
@@ -93,7 +94,7 @@ func _physics_process(delta: float) -> void:
 		_reload_left -= delta
 		if _reload_left <= 0.0:
 			_reload_left = 0.0
-			_ammo[_slot] = data.magazine_size
+			_ammo[_slot] = magazine_of(data)
 
 
 func _process(delta: float) -> void:
@@ -174,7 +175,7 @@ func host_set_loadout(new_specs: Array, equip_slot := -1) -> void:
 ## Riempie i caricatori di tutte le armi (alla rinascita).
 func refill() -> void:
 	for i in loadout.size():
-		_ammo[i] = loadout[i].magazine_size
+		_ammo[i] = magazine_of(loadout[i])
 	_reload_left = 0.0
 
 
@@ -186,7 +187,7 @@ func _apply_loadout(new_specs: Array, equip_slot: int) -> void:
 	for i in loadout.size():
 		# Le armi che restano uguali tengono i colpi rimasti; quelle nuove sono piene.
 		var same: bool = i < old_specs.size() and old_specs[i] == new_specs[i]
-		_ammo.append(old_ammo[i] if same else loadout[i].magazine_size)
+		_ammo.append(old_ammo[i] if same else magazine_of(loadout[i]))
 	var changed_in_hand: bool = _slot < 0 or _slot >= loadout.size() \
 			or _slot >= old_specs.size() or old_specs[_slot] != new_specs[_slot]
 	if equip_slot >= 0:
@@ -234,9 +235,17 @@ func reload_progress() -> float:
 func start_reload() -> void:
 	if data == null or data.magazine_size <= 0 or is_reloading() or _switch_left > 0.0:
 		return
-	if ammo() >= data.magazine_size:
+	if ammo() >= magazine_of(data):
 		return
 	_reload_left = maxf(data.reload_time / reload_speed_multiplier, 0.01)
+
+
+## Colpi in un caricatore pieno di weapon_data, con gli oggetti del giocatore
+## (0 o meno = munizioni infinite).
+func magazine_of(weapon_data: WeaponData) -> int:
+	if weapon_data.magazine_size <= 0:
+		return weapon_data.magazine_size
+	return ceili(weapon_data.magazine_size * magazine_multiplier - 0.001)
 
 
 ## Spara un colpo da origin verso direction. exclude: corpi da ignorare (chi spara).

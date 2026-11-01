@@ -137,7 +137,10 @@ func _hit(enemy: Enemy, origin: Vector3, forward: Vector3, attacker: Node3D) -> 
 	# Il punto colpito è il lato rivolto verso chi tira il pugno (conta per le corazze).
 	var toward_attacker := Vector3(origin.x - enemy.center().x, 0.0, origin.z - enemy.center().z)
 	var point := enemy.center() + toward_attacker.normalized() * 0.4
-	var dealt := health.take_damage(heavy_damage if heavy_hand else damage, attacker, point)
+	var amount := heavy_damage if heavy_hand else damage
+	if attacker.has_method("melee_multiplier"):
+		amount *= attacker.melee_multiplier()
+	var dealt := health.take_damage(amount, attacker, point)
 	_report_damage(health, dealt, not health.is_alive(), point)
 
 	var direction := Vector3(enemy.global_position.x - origin.x, 0.0, enemy.global_position.z - origin.z)

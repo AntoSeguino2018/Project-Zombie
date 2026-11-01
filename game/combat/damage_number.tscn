@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://game/combat/damage_number.gd" id="1_number"]
 
 [node name="DamageNumber" type="Label3D"]
+cast_shadow = 0
 physics_interpolation_mode = 2
 billboard = 1
 no_depth_test = true

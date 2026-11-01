@@ -3,11 +3,13 @@ extends CanvasLayer
 ## HUD del giocatore locale: mirino, barra della vita, munizioni e arma in mano,
 ## uccisioni e tempo della run, ondata in corso con gli zombie rimasti (o i
 ## secondi alla prossima), soldi (con i guadagni che compaiono e svaniscono),
-## boost attivi con il tempo rimasto, avvisi (es. soldi che non bastano),
+## boost attivi con il tempo rimasto, oggetti passivi raccolti con il loro
+## effetto totale, avvisi (es. soldi che non bastano),
 ## cosa si può fare con E, barra della rianimazione,
 ## direzione del danno, bordo rosso quando si subiscono danni (che resta acceso
 ## e pulsa con la vita bassa), comandi all'avvio, schermate di giocatore a
-## terra, morto e di run persa con il riepilogo.
+## terra, morto e di run persa con il riepilogo. Con F3 mostra le statistiche
+## delle prestazioni (FPS, fisica, zombie, detriti, cose a terra...).
 
 ## Sotto questa frazione di vita il bordo rosso resta acceso.
 @export_range(0.0, 1.0) var low_health_fraction := 0.3
@@ -25,6 +27,9 @@ var _waves: WaveDirector
 var _run: RunManager
 var _inventory: RunInventory
 var _gain_tween: Tween
+var _debug_left := 0.0
+var _debug_physics_frames := 0
+var _debug_frames := 0
 var _notice_tween: Tween
 var _banner_tween: Tween
 
@@ -45,6 +50,8 @@ var _banner_tween: Tween
 @onready var _money_gain: Label = $MoneyGain
 @onready var _boosts_label: RichTextLabel = $BoostsLabel
 @onready var _notice_label: Label = $NoticeLabel
+@onready var _items_label: RichTextLabel = $ItemsLabel
+@onready var _debug_stats: Label = $DebugStats
 
 
 func _ready() -> void:
@@ -84,7 +91,22 @@ func bind_inventory(inventory: RunInventory) -> void:
 	_inventory = inventory
 	inventory.money_changed.connect(_on_money_changed)
 	inventory.notice.connect(show_notice)
+	inventory.items_changed.connect(_update_items)
 	_money_label.text = "%d €" % inventory.money
+	_update_items()
+
+
+## Oggetti raccolti, in alto a sinistra: nome, copie ed effetto totale.
+func _update_items() -> void:
+	var lines := PackedStringArray()
+	for path in _inventory.items:
+		var item: PassiveItem = _inventory.resource_for(path)
+		var count: int = _inventory.items[path]
+		lines.append("[color=#%s]%s[/color]%s  [color=#cccccc]%s[/color]" % [
+				item.color.lightened(0.3).to_html(false), item.display_name,
+				" ×%d" % count if count > 1 else "", item.summary(count)])
+	_items_label.text = "
+".join(lines)
 
 
 func _on_money_changed(money: int, delta: int) -> void:
@@ -120,7 +142,7 @@ func _update_boosts() -> void:
 		return
 	var lines := PackedStringArray()
 	for path in _inventory.boosts:
-		var boost: Boost = load(path)
+		var boost: Boost = _inventory.resource_for(path)
 		lines.append("[color=#%s]%s[/color]  %s" % [boost.color.lightened(0.35).to_html(false),
 				boost.display_name, format_time(ceilf(_inventory.boosts[path]))])
 	_boosts_label.text = "
@@ -255,8 +277,50 @@ func _update_wave_label() -> void:
 		_wave_label.text = "Ondata %d tra %d" % [_waves.wave + 1, ceili(_waves.seconds_to_next_wave())]
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("toggle_stats"):
+		_debug_stats.visible = not _debug_stats.visible
+		# Il tempo di disegno della scheda video si misura solo a pannello aperto.
+		RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), _debug_stats.visible)
+		_debug_physics_frames = Engine.get_physics_frames()
+		_debug_frames = Engine.get_process_frames()
+
+
+## Statistiche delle prestazioni, aggiornate 4 volte al secondo.
+func _update_debug_stats(delta: float) -> void:
+	_debug_left -= delta
+	if not _debug_stats.visible or _debug_left > 0.0:
+		return
+	_debug_left = 0.25
+	var tree := get_tree()
+	var rubble := RubbleField.of(self)
+	var viewport := get_viewport().get_viewport_rid()
+	# Passi di fisica per frame: più di 1 vuol dire che il gioco sta recuperando
+	# frame lenti (e la fisica sembra costare di più perché si somma).
+	var frames := maxi(Engine.get_process_frames() - _debug_frames, 1)
+	var steps := float(Engine.get_physics_frames() - _debug_physics_frames) / frames
+	_debug_frames = Engine.get_process_frames()
+	_debug_physics_frames = Engine.get_physics_frames()
+	_debug_stats.text = "
+".join([
+		"%d FPS  ·  frame %.1f ms" % [Performance.get_monitor(Performance.TIME_FPS),
+				Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0],
+		"fisica %.1f ms  ·  %.1f passi per frame" % [Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, steps],
+		"disegno: CPU %.1f ms  ·  scheda video %.1f ms" % [RenderingServer.viewport_get_measured_render_time_cpu(viewport),
+				RenderingServer.viewport_get_measured_render_time_gpu(viewport)],
+		"zombie %d" % tree.get_nodes_in_group("enemies").size(),
+		"detriti in movimento %d  ·  macerie %d" % [rubble.active_count(), rubble.rubble_count()],
+		"armi a terra %d  ·  oggetti a terra %d" % [tree.get_nodes_in_group("weapon_pickups").size(),
+				tree.get_nodes_in_group("item_pickups").size()],
+		"nodi %d  ·  disegnati %d  ·  draw call %d" % [Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+				Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+				Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)],
+	])
+
+
 func _process(delta: float) -> void:
 	_time += delta
+	_update_debug_stats(delta)
 	_update_wave_label()
 	_update_run_lost()
 	_update_boosts()

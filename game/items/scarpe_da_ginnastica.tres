@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveItem" format=3]
+
+[ext_resource type="Script" path="res://game/items/passive_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Scarpe da ginnastica"
+stat = "move_speed"
+per_stack = 0.06
+percent = true
+effect_label = "velocità di movimento"
+color = Color(0.3, 0.85, 0.5, 1)
+weight = 1.0

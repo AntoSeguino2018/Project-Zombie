@@ -1,21 +1,33 @@
 class_name RunInventory
 extends Node
-## Quello che un giocatore accumula durante la run: i suoi soldi (personali) e
-## i boost delle macchinette ancora attivi. Si azzera quando la run riparte.
+## Quello che un giocatore accumula durante la run: i suoi soldi (personali),
+## i boost delle macchinette ancora attivi e gli oggetti passivi raccolti
+## (ogni copia somma di nuovo il suo effetto). Si azzera quando la run riparte.
 ##
-## Lo decide l'host, come la vita: sugli altri host_add_money(), host_spend() e
-## host_apply_boost() non fanno nulla e i cambiamenti arrivano dall'host con
-## gli stessi segnali. I timer dei boost scorrono su tutti allo stesso modo.
+## Lo decide l'host, come la vita: sugli altri i metodi host_* non fanno nulla
+## e i cambiamenti arrivano dall'host con gli stessi segnali. I timer dei boost
+## scorrono su tutti allo stesso modo.
 
 ## I soldi sono cambiati di delta (positivo = guadagnati).
 signal money_changed(money: int, delta: int)
 signal boosts_changed
+## È arrivato un oggetto (o una sua copia in più).
+signal items_changed
 ## Un messaggio per chi controlla il giocatore (es. "Servono 100 €").
 signal notice(text: String)
 
 var money := 0
 ## Boost attivi: percorso della risorsa Boost -> secondi rimasti.
 var boosts := {}
+## Oggetti passivi: percorso della risorsa PassiveItem -> copie.
+var items := {}
+
+## Risorse di oggetti e boost già caricate (percorso -> risorsa). Vanno tenute:
+## altrimenti Godot le scarica e ogni load() le rilegge dal disco, che a ogni
+## tick e per ogni oggetto faceva crollare gli FPS.
+var _resources := {}
+## Totale degli oggetti per ogni statistica, ricalcolato quando cambiano.
+var _stats := {}
 
 
 func _enter_tree() -> void:
@@ -81,13 +93,49 @@ func host_apply_boost(boost: Boost, potency := 1.0) -> void:
 		_publish_boosts()
 
 
-## Sull'host: a inizio run, niente soldi e niente boost.
+## Sull'host: aggiunge una copia di item e avvisa il giocatore.
+func host_add_item(item: PassiveItem) -> void:
+	if not is_multiplayer_authority():
+		return
+	items[item.resource_path] = items.get(item.resource_path, 0) + 1
+	_publish_items()
+	var count: int = items[item.resource_path]
+	host_notice("%s%s: %s" % [item.display_name, " ×%d" % count if count > 1 else "", item.summary(count)])
+
+
+## Copie possedute di item.
+func item_count(item: PassiveItem) -> int:
+	return items.get(item.resource_path, 0)
+
+
+## Somma degli effetti degli oggetti sulla statistica stat_name (vedi PassiveItem).
+func stat(stat_name: String) -> float:
+	return _stats.get(stat_name, 0.0)
+
+
+## La risorsa (PassiveItem o Boost) di path, caricata una volta sola.
+func resource_for(path: String) -> Resource:
+	if not _resources.has(path):
+		_resources[path] = load(path)
+	return _resources[path]
+
+
+func _recompute_stats() -> void:
+	_stats.clear()
+	for path in items:
+		var item: PassiveItem = resource_for(path)
+		_stats[item.stat] = _stats.get(item.stat, 0.0) + item.per_stack * items[path]
+
+
+## Sull'host: a inizio run, niente soldi, boost né oggetti.
 func host_reset() -> void:
 	if not is_multiplayer_authority():
 		return
 	_set_money(0, 0)
 	boosts.clear()
 	_publish_boosts()
+	items.clear()
+	_publish_items()
 
 
 ## Sull'host: mostra text a chi controlla questo giocatore.
@@ -99,16 +147,16 @@ func host_notice(text: String) -> void:
 		_receive_notice.rpc_id(owner_id, text)
 
 
-## Prodotto dei moltiplicatori di cadenza dei boost attivi.
+## Cadenza: boost attivi per oggetti.
 func fire_rate_multiplier() -> float:
-	var result := 1.0
+	var result := 1.0 + stat("fire_rate")
 	for boost in active_boosts():
 		result *= boost.fire_rate_multiplier
 	return result
 
 
 func reload_speed_multiplier() -> float:
-	var result := 1.0
+	var result := 1.0 + stat("reload_speed")
 	for boost in active_boosts():
 		result *= boost.reload_speed_multiplier
 	return result
@@ -118,7 +166,7 @@ func reload_speed_multiplier() -> float:
 func active_boosts() -> Array[Boost]:
 	var result: Array[Boost] = []
 	for path in boosts:
-		result.append(load(path))
+		result.append(resource_for(path))
 	return result
 
 
@@ -154,6 +202,23 @@ func _receive_boosts(new_boosts: Dictionary) -> void:
 	boosts_changed.emit()
 
 
+func _publish_items() -> void:
+	_recompute_stats()
+	items_changed.emit()
+	if NetSession.is_online():
+		_receive_items.rpc(items)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_items(new_items: Dictionary) -> void:
+	items = {}
+	for path in new_items:
+		if ItemCatalog.is_item(path):
+			items[path] = int(new_items[path])
+	_recompute_stats()
+	items_changed.emit()
+
+
 @rpc("authority", "call_remote", "reliable")
 func _receive_notice(text: String) -> void:
 	notice.emit(text)
@@ -165,3 +230,4 @@ func _request_state() -> void:
 		var peer := multiplayer.get_remote_sender_id()
 		_receive_money.rpc_id(peer, money, 0)
 		_receive_boosts.rpc_id(peer, boosts)
+		_receive_items.rpc_id(peer, items)

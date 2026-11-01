@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveItem" format=3]
+
+[ext_resource type="Script" path="res://game/items/passive_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Guanto da forno"
+stat = "melee_damage"
+per_stack = 0.3
+percent = true
+effect_label = "danno dei pugni"
+color = Color(0.9, 0.45, 0.3, 1)
+weight = 0.7

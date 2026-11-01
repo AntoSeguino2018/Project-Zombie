@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveItem" format=3]
+
+[ext_resource type="Script" path="res://game/items/passive_item.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+display_name = "Caricatore XL"
+stat = "magazine"
+per_stack = 0.2
+percent = true
+effect_label = "colpi nel caricatore"
+color = Color(0.75, 0.75, 0.8, 1)
+weight = 1.0

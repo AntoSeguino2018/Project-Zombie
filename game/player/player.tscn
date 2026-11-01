@@ -377,6 +377,34 @@ theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 
+[node name="ItemsLabel" type="RichTextLabel" parent="Hud"]
+offset_left = 32.0
+offset_top = 24.0
+offset_right = 532.0
+offset_bottom = 324.0
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
+scroll_active = false
+
+[node name="DebugStats" type="Label" parent="Hud"]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -432.0
+offset_top = 64.0
+offset_right = -32.0
+offset_bottom = 300.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.75, 1, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 2
+
 [node name="ControlsLabel" type="Label" parent="Hud"]
 offset_left = 32.0
 offset_top = 24.0
@@ -389,6 +417,7 @@ theme_override_font_sizes/font_size = 18
 text = "WASD muoviti   ·   Spazio salta   ·   Shift corri
 Click sinistro spara   ·   R ricarica   ·   F pugno
 E apri casse e raccogli armi (tieni premuto: rianima un compagno)
+F3 statistiche delle prestazioni
 1 / 2 o rotella cambia arma   ·   Esc libera il mouse"
 
 [node name="InteractPrompt" type="RichTextLabel" parent="Hud"]

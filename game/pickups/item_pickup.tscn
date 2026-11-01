@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/pickups/item_pickup.gd" id="1_pickup"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_pickup"]
+radius = 0.45
+
+[sub_resource type="BoxMesh" id="BoxMesh_cube"]
+size = Vector3(0.32, 0.32, 0.32)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beam"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 1, 1, 0.22)
+cull_mode = 2
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_beam"]
+top_radius = 0.05
+bottom_radius = 0.14
+height = 2.2
+radial_segments = 8
+rings = 1
+cap_top = false
+cap_bottom = false
+
+[node name="ItemPickup" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="Cube" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_cube")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+cast_shadow = 0
+material_override = SubResource("StandardMaterial3D_beam")
+mesh = SubResource("CylinderMesh_beam")
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+visibility_range_end = 6.0
+visibility_range_end_margin = 1.0
+visibility_range_fade_mode = 1
+billboard = 1
+text = "Oggetto"
+font_size = 30
+outline_size = 10

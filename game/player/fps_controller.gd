@@ -119,6 +119,7 @@ var _interact_target: Node
 ## Statistiche della run in corso, per l'HUD e la schermata di fine run.
 var _kills := 0
 var _run_time := 0.0
+var _base_max_health := 100.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
@@ -152,6 +153,11 @@ func _ready() -> void:
 	_apply_player_color()
 	_name_tag.text = display_name()
 	_health.died.connect(_on_died)
+	_base_max_health = _health.max_health
+	if multiplayer.is_server():
+		# Gli oggetti che alzano la vita massima la cambiano subito.
+		_inventory.items_changed.connect(func():
+			_health.set_max_health(_base_max_health + _inventory.stat("max_health")))
 	if not multiplayer.is_server():
 		# Chi entra a partita iniziata chiede all'host chi è a terra o morto.
 		_request_life.rpc_id(1)
@@ -224,8 +230,7 @@ func _physics_process(delta: float) -> void:
 		_publish_state()
 		return
 	rotation.y = _yaw
-	_weapon.fire_rate_multiplier = _inventory.fire_rate_multiplier()
-	_weapon.reload_speed_multiplier = _inventory.reload_speed_multiplier()
+	_sync_weapon_bonuses()
 
 	if is_on_floor():
 		if Input.is_action_just_pressed("jump"):
@@ -237,7 +242,7 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := transform.basis * Vector3(input.x, 0.0, input.y)
 	var sprinting := Input.is_action_pressed("sprint") and input.y < 0.0
-	var speed := sprint_speed if sprinting else walk_speed
+	var speed := (sprint_speed if sprinting else walk_speed) * (1.0 + _inventory.stat("move_speed"))
 	var friction := push_friction.x if is_on_floor() else push_friction.y
 	_push = _push.lerp(Vector3.ZERO, 1.0 - exp(-friction * delta))
 	velocity.x = direction.x * speed + _push.x
@@ -255,9 +260,26 @@ func weapon() -> Weapon:
 	return _weapon
 
 
-## Soldi e boost della run.
+## Soldi, boost e oggetti della run.
 func inventory() -> RunInventory:
 	return _inventory
+
+
+## Passa all'arma gli effetti di boost e oggetti.
+func _sync_weapon_bonuses() -> void:
+	_weapon.fire_rate_multiplier = _inventory.fire_rate_multiplier()
+	_weapon.reload_speed_multiplier = _inventory.reload_speed_multiplier()
+	_weapon.magazine_multiplier = 1.0 + _inventory.stat("magazine")
+
+
+## Moltiplica i danni che fa questo giocatore (oggetti); lo usa HealthComponent.
+func damage_multiplier() -> float:
+	return 1.0 + _inventory.stat("damage")
+
+
+## Moltiplica il danno dei pugni (oltre a damage_multiplier).
+func melee_multiplier() -> float:
+	return 1.0 + _inventory.stat("melee_damage")
 
 
 ## Vero se è in piedi (vivo e non a terra).
@@ -275,7 +297,8 @@ func _apply_host_rules(delta: float) -> void:
 				_fell_out = true
 				_health.take_damage(_health.current)
 			elif _can_revive(_reviving):
-				_reviving._host_add_revive(delta / _reviving.revive_time, self)
+				var speed := 1.0 + _inventory.stat("revive_speed")
+				_reviving._host_add_revive(delta * speed / _reviving.revive_time, self)
 		Life.DOWNED:
 			var being_revived := Engine.get_physics_frames() - _revived_frame <= 1
 			if not being_revived and revive_progress > 0.0:
@@ -340,10 +363,11 @@ func host_respawn(at: Vector3) -> void:
 
 ## Sull'host, a inizio run: vita piena, punto di partenza, solo la pistola.
 func host_restart() -> void:
+	# Prima l'inventario: chi si rialza deve già avere i caricatori senza oggetti.
+	_inventory.host_reset()
 	_health.reset()
 	_host_set_life(Life.ALIVE)
 	_weapon.host_set_loadout([["pistol"]], 0)
-	_inventory.host_reset()
 	_teleport(_spawn_transform.origin)
 	_reset_run_stats()
 	if NetSession.is_online():
@@ -387,6 +411,7 @@ func _apply_life(new_life: Life, new_bleed_left: float) -> void:
 		match life:
 			Life.ALIVE:
 				_fall_check_delay = 1.0
+				_sync_weapon_bonuses()
 				_weapon.refill()
 				_hud.hide_death()
 			Life.DOWNED:

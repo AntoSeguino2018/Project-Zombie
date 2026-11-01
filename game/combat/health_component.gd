@@ -73,10 +73,14 @@ func is_alive() -> bool:
 
 
 ## Applica il danno e restituisce quanto ne è stato inflitto davvero (dopo
-## l'eventuale filtro, mai più della vita rimasta). source è chi ha causato il danno.
+## l'eventuale filtro, mai più della vita rimasta). source è chi ha causato il
+## danno; se ha damage_multiplier() (es. un giocatore con i suoi oggetti), il
+## danno viene moltiplicato prima di corazze e punti deboli.
 func take_damage(amount: float, source: Node = null, hit_position := Vector3.ZERO) -> float:
 	if not is_multiplayer_authority():
 		return 0.0
+	if is_instance_valid(source) and source.has_method("damage_multiplier"):
+		amount *= source.damage_multiplier()
 	if damage_filter.is_valid():
 		amount = damage_filter.call(amount, source, hit_position)
 	if not is_alive() or amount <= 0.0:
@@ -109,6 +113,29 @@ func ignite(damage_per_second: float, seconds: float, source: Node = null) -> vo
 func reset() -> void:
 	if is_multiplayer_authority():
 		_set_current(max_health)
+
+
+## Cambia la vita massima (oggetti che la alzano). Quella guadagnata si
+## aggiunge anche alla vita attuale; se scende, la vita attuale non la supera.
+func set_max_health(value: float) -> void:
+	if not is_multiplayer_authority() or is_equal_approx(value, max_health):
+		return
+	var gained := maxf(value - max_health, 0.0)
+	var new_current := minf(current + gained, value) if is_alive() else 0.0
+	_apply_max(value)
+	if NetSession.is_online():
+		_receive_max.rpc(value)
+	_set_current(new_current)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_max(value: float) -> void:
+	_apply_max(value)
+
+
+func _apply_max(value: float) -> void:
+	max_health = value
+	changed.emit(current, max_health)
 
 
 ## Imposta la vita a value, anche da morti (per esempio quando si viene rianimati).

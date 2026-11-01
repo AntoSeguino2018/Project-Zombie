@@ -25,6 +25,7 @@
 [ext_resource type="Resource" path="res://game/boosts/espresso.tres" id="24_espresso"]
 [ext_resource type="Resource" path="res://game/boosts/doppio.tres" id="25_doppio"]
 [ext_resource type="Resource" path="res://game/boosts/merendina.tres" id="26_merendina"]
+[ext_resource type="PackedScene" path="res://game/pickups/item_pickup.tscn" id="27_item_pickup"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -62,6 +63,7 @@ enemy_scenes = Array[PackedScene]([ExtResource("9_walker"), ExtResource("10_runn
 spawn_path = NodePath("../Pickups")
 script = ExtResource("15_pickup_replicator")
 pickup_scene = ExtResource("16_pickup")
+item_scene = ExtResource("27_item_pickup")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")

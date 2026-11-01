@@ -2,16 +2,16 @@ class_name WeaponCrate
 extends StaticBody3D
 ## Cassa delle armi: guardandola e premendo E la si apre pagando price e ne
 ## esce un'arma a caso (vedi WeaponCatalog.roll), che resta a fluttuare sopra
-## finché qualcuno non la prende. Dopo refill_time secondi, se l'arma è stata
-## presa, si richiude piena.
+## finché qualcuno non la prende. Dopo refill_time secondi si richiude piena
+## comunque: se l'arma è ancora lì, sparisce.
 ##
 ## In rete apertura, contenuto e richiusura li decide l'host; gli altri vedono
 ## il coperchio aprirsi e l'arma comparire (PickupReplicator).
 
 ## Soldi per aprirla (li paga chi la apre).
 @export var price := 100
-## Secondi dall'apertura prima che si possa riaprire.
-@export var refill_time := 30.0
+## Secondi dall'apertura prima che si richiuda (e si possa riaprire).
+@export var refill_time := 60.0
 ## Altezza dell'arma che esce, sopra la base della cassa.
 @export var pickup_height := 1.15
 ## Di quanto si apre il coperchio, in gradi.
@@ -39,7 +39,11 @@ func _physics_process(delta: float) -> void:
 	if not is_open or not multiplayer.is_server():
 		return
 	_refill_left -= delta
-	if _refill_left <= 0.0 and instance_from_id(_pickup_id) == null:
+	if _refill_left <= 0.0:
+		var pickup := instance_from_id(_pickup_id) as Node
+		if pickup and not pickup.is_queued_for_deletion():
+			pickup.queue_free()
+		_pickup_id = 0
 		_set_open(false)
 
 
@@ -64,6 +68,9 @@ func interact(player: FpsController, _slot: int) -> void:
 	var at := global_position + Vector3.UP * pickup_height
 	var replicator := PickupReplicator.of(self)
 	var pickup: WeaponPickup = replicator.spawn_pickup(spec, at) if replicator else null
+	if pickup:
+		# La toglie la cassa quando si richiude.
+		pickup.lifetime = 0.0
 	_pickup_id = pickup.get_instance_id() if pickup else 0
 
 

@@ -50,6 +50,8 @@ const LAYER_PLAYERS := 2
 @export var corpse_time := 1.0
 ## Soldi che riceve chi lo uccide.
 @export var bounty := 10
+## Probabilità che da morto lasci a terra un oggetto passivo.
+@export_range(0.0, 1.0) var item_drop_chance := 0.02
 
 @export_group("Rete")
 ## Volte al secondo in cui l'host manda lo stato dello zombie.

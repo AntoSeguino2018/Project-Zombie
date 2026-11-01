@@ -69,6 +69,7 @@ collision_mask = 7
 floor_snap_length = 0.3
 script = ExtResource("1_enemy")
 bounty = 60
+item_drop_chance = 1.0
 move_speed = 2.8
 turn_speed = 4.0
 can_be_launched = false

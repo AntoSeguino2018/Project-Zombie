@@ -4,8 +4,9 @@ extends Node
 ## terra o morti): si mostra il riepilogo e dopo qualche secondo si riparte da
 ## capo (ondata 1, solo la pistola, niente soldi, casse chiuse). A ogni ondata
 ## superata chi è a terra si rialza, chi è morto rinasce vicino a un compagno
-## e tutti ricevono un premio in soldi. Chi uccide uno zombie ne prende la
-## taglia (Enemy.bounty).
+## e tutti ricevono un premio in soldi e un oggetto passivo a caso. Chi uccide
+## uno zombie ne prende la taglia (Enemy.bounty); a volte lo zombie lascia a
+## terra un oggetto che può prendere chiunque.
 ##
 ## Decide tutto l'host; gli altri ricevono quando la run è persa e quando
 ## riparte (anche chi entra mentre il riepilogo è a schermo).
@@ -69,16 +70,28 @@ func _exit_tree() -> void:
 		CombatEvents.bus.enemy_killed.disconnect(_on_enemy_killed)
 
 
-## Sull'host: la taglia dello zombie va a chi l'ha ucciso.
+## Sull'host: la taglia dello zombie va a chi l'ha ucciso (con gli oggetti che
+## la aumentano o che curano a ogni uccisione); a volte lascia un oggetto.
 func _on_enemy_killed(enemy: Node, killer: Node) -> void:
-	if killer is FpsController and enemy is Enemy and not lost:
-		killer.inventory().host_add_money(enemy.bounty)
+	if not enemy is Enemy or lost:
+		return
+	if killer is FpsController:
+		var inventory: RunInventory = killer.inventory()
+		inventory.host_add_money(roundi(enemy.bounty * (1.0 + inventory.stat("kill_money"))))
+		var heal := inventory.stat("kill_heal")
+		if heal > 0.0:
+			HealthComponent.of(killer).heal(heal)
+	if _rng.randf() < enemy.item_drop_chance:
+		var replicator := PickupReplicator.of(self)
+		if replicator:
+			replicator.spawn_item(ItemCatalog.roll(_rng), enemy.global_position + Vector3.UP * 0.9)
 
 
 func _on_wave_cleared(wave: int) -> void:
 	_bring_back_fallen()
 	for player in _players():
 		player.inventory().host_add_money(wave_reward_base + wave_reward_per_wave * wave)
+		player.inventory().host_add_item(ItemCatalog.roll(_rng))
 
 
 func _physics_process(delta: float) -> void:
@@ -157,6 +170,8 @@ func _host_restart() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		enemy.queue_free()
 	for pickup in get_tree().get_nodes_in_group("weapon_pickups"):
+		pickup.queue_free()
+	for pickup in get_tree().get_nodes_in_group("item_pickups"):
 		pickup.queue_free()
 	for crate in get_tree().get_nodes_in_group("weapon_crates"):
 		crate.host_reset()

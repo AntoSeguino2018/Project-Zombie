@@ -27,7 +27,7 @@ func _draw() -> void:
 	if _weapon == null or _weapon.data == null:
 		return
 	var font := get_theme_default_font()
-	var magazine := _weapon.data.magazine_size
+	var magazine := _weapon.magazine_of(_weapon.data)
 	var big := "∞" if magazine <= 0 else str(_weapon.ammo())
 	var small := "" if magazine <= 0 else " / %d" % magazine
 	var low := magazine > 0 and _weapon.ammo() <= ceili(magazine * low_fraction)
