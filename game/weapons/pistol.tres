@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="1_data"]
+[ext_resource type="PackedScene" path="res://game/weapons/viewmodels/pistol_viewmodel.tscn" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_data")
+catalog_id = "pistol"
+display_name = "Pistola"
+viewmodel = ExtResource("2_viewmodel")
+damage = 15.0
+fire_rate = 5.0
+automatic = false
+max_range = 150.0
+spread_degrees = 0.5
+magazine_size = 12
+reload_time = 1.2
+recoil_pitch_degrees = 1.6
+recoil_yaw_degrees = 0.5
+recoil_recovery = 12.0

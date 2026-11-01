@@ -158,13 +158,20 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 
 ---
 
-## Struttura della run (bozza)
-💡 Proposta:
-1. Si parte dalla lobby.
-2. Si attraversano 4 o 5 "piani" o zone del Complesso, ognuno con un obiettivo, poi un boss o un evento.
-3. La difficoltà sale col tempo, quindi conviene non perdere tempo.
-4. Valuta, macchinette, casse di armi e oggetti sono sparsi nei livelli.
-5. Chi muore viene rianimato dai compagni. Se muoiono tutti, si torna alla lobby con qualche sblocco.
+## Struttura della run
+✅ Per ora:
+- **Una sola mappa, molto grande.**
+- **La run è fatta di ondate di zombie.** A ogni ondata non cresce il numero di zombie, ma un **budget di pericolosità**:
+  - ogni tipo di zombie ha un costo che misura quanto è pericoloso (es. Camminatore 1, Bestione 5);
+  - l'ondata "spende" il budget scegliendo i tipi ogni volta in modo diverso: con 6 punti possono arrivare un Bestione e un Camminatore, oppure sei Camminatori;
+  - il budget sale a ogni ondata (es. 6 nella prima, 20 in una successiva).
+- **Soldi personali:** ognuno ha i suoi e decide come spenderli (macchinette, casse).
+
+💡 Ancora da decidere:
+- Cosa succede tra un'ondata e l'altra (pausa per spendere, macchinette, riparazioni).
+- Come si vince: un numero fisso di ondate, un'ondata finale con boss, oppure si resiste il più possibile.
+- Chi muore viene rianimato dai compagni. Se muoiono tutti, si torna alla lobby con qualche sblocco.
+- Più avanti: più mappe, o zone del Complesso collegate.
 
 ---
 

@@ -1,11 +1,20 @@
 class_name WeaponData
 extends Resource
-## Parametri di un'arma. Ogni arma del gioco è un file .tres con questi valori,
-## così si bilancia dall'Inspector senza toccare il codice.
+## Parametri di un'arma. Ogni arma base del gioco è un file .tres con questi
+## valori, così si bilancia dall'Inspector senza toccare il codice; le armi
+## trovate nelle casse sono copie di quelle base modificate dai tratti
+## (vedi WeaponCatalog).
 ## Senza projectile_scene l'arma è hitscan (il colpo arriva all'istante);
 ## con projectile_scene spara proiettili fisici che volano e cadono.
 
+enum Rarity { COMMON, RIGGED, UNHINGED }
+
+## Nome dell'arma base nel catalogo (WeaponCatalog.BASES).
+@export var catalog_id := ""
 @export var display_name := "Arma"
+## Vero se il nome è femminile: serve ad accordare i tratti ("Carabina rapida").
+@export var feminine := true
+@export var rarity := Rarity.COMMON
 ## Modello in prima persona. Deve contenere un Marker3D "Muzzle" sulla bocca.
 @export var viewmodel: PackedScene
 ## Danno di ogni colpo (per i proiettili: il colpo diretto).
@@ -18,6 +27,8 @@ extends Resource
 @export var max_range := 200.0
 ## Dispersione massima di ogni colpo attorno al mirino, in gradi.
 @export var spread_degrees := 0.6
+## Pallini sparati a ogni colpo (fucili a pompa), ognuno con il danno pieno.
+@export var pellets := 1
 ## Colpi nel caricatore (0 = infiniti). Per ora la riserva è infinita.
 @export var magazine_size := 30
 ## Secondi per ricaricare.
@@ -48,3 +59,23 @@ extends Resource
 @export var explosion_damage := 0.0
 ## Velocità con cui l'esplosione scaraventa via gli zombie, in m/s.
 @export var explosion_knockback := 0.0
+
+@export_group("Trucchi")
+## Quante volte un colpo rimbalza sui muri prima di fermarsi.
+@export var bounces := 0
+## Quanti nemici attraversa un colpo prima di fermarsi.
+@export var pierce := 0
+## Danno al secondo del fuoco appiccato dai colpi (0 = niente fuoco).
+@export var burn_damage := 0.0
+## Secondi di fuoco dopo l'ultimo colpo.
+@export var burn_time := 3.0
+
+## Tratti applicati all'arma base, nell'ordine (vedi WeaponCatalog.TRAITS).
+var traits := PackedStringArray()
+
+
+## Descrizione compatta dell'arma, da mandare in rete: arma base e tratti.
+func spec() -> Array:
+	var result: Array = [catalog_id]
+	result.append_array(traits)
+	return result

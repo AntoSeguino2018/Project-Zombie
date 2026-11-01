@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/pickups/weapon_crate.gd" id="1_crate"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_crate"]
+size = Vector3(1.1, 0.62, 0.66)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shell"]
+albedo_color = Color(0.27, 0.31, 0.27, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stripe"]
+albedo_color = Color(0.95, 0.55, 0.2, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_inside"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.45, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+material = SubResource("StandardMaterial3D_shell")
+size = Vector3(1.1, 0.5, 0.66)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stripe"]
+material = SubResource("StandardMaterial3D_stripe")
+size = Vector3(1.12, 0.08, 0.68)
+
+[sub_resource type="BoxMesh" id="BoxMesh_inside"]
+material = SubResource("StandardMaterial3D_inside")
+size = Vector3(0.98, 0.02, 0.54)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lid"]
+material = SubResource("StandardMaterial3D_shell")
+size = Vector3(1.14, 0.12, 0.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_handle"]
+material = SubResource("StandardMaterial3D_stripe")
+size = Vector3(0.3, 0.05, 0.06)
+
+[node name="WeaponCrate" type="StaticBody3D"]
+collision_layer = 17
+collision_mask = 0
+script = ExtResource("1_crate")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
+shape = SubResource("BoxShape3D_crate")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="Stripe" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Inside" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.495, 0)
+mesh = SubResource("BoxMesh_inside")
+
+[node name="LidPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.35)
+
+[node name="Lid" type="MeshInstance3D" parent="LidPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.35)
+mesh = SubResource("BoxMesh_lid")
+
+[node name="Handle" type="MeshInstance3D" parent="LidPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.72)
+mesh = SubResource("BoxMesh_handle")

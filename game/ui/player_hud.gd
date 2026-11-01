@@ -1,7 +1,8 @@
 class_name PlayerHud
 extends CanvasLayer
 ## HUD del giocatore locale: mirino, barra della vita, munizioni e arma in mano,
-## uccisioni e tempo di sopravvivenza, direzione del danno, bordo rosso quando
+## uccisioni e tempo di sopravvivenza, cosa si può fare con E, direzione del
+## danno, bordo rosso quando
 ## si subiscono danni (che resta acceso e pulsa con la vita bassa), comandi
 ## all'avvio e schermata di morte con il riepilogo e il conto alla rovescia.
 
@@ -28,6 +29,7 @@ var _death_summary := ""
 @onready var _damage_indicator: DamageIndicator = $DamageIndicator
 @onready var _stats_label: Label = $StatsLabel
 @onready var _controls_label: Label = $ControlsLabel
+@onready var _prompt: RichTextLabel = $InteractPrompt
 
 
 func _ready() -> void:
@@ -46,8 +48,21 @@ func bind(health: HealthComponent) -> void:
 
 func bind_weapon(weapon: Weapon) -> void:
 	_ammo_display.bind(weapon)
-	weapon.equipped.connect(func(data: WeaponData): _weapon_label.text = data.display_name)
-	_weapon_label.text = weapon.data.display_name
+	weapon.equipped.connect(_show_weapon_name)
+	_show_weapon_name(weapon.data)
+
+
+## Nome dell'arma in mano, del colore della sua rarità.
+func _show_weapon_name(data: WeaponData) -> void:
+	_weapon_label.text = data.display_name
+	_weapon_label.modulate = WeaponCatalog.rarity_color(data)
+
+
+## Scritta "E ..." sotto il mirino; vuota la nasconde.
+func show_prompt(text: String) -> void:
+	_prompt.visible = text != ""
+	if _prompt.visible:
+		_prompt.text = "[center][color=#ffd24a]E[/color]  %s[/center]" % text
 
 
 ## Uccisioni e tempo di sopravvivenza della vita in corso, in alto a destra.

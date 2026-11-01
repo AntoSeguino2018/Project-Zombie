@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" path="res://game/player/fps_controller.gd" id="1_ctrl"]
 [ext_resource type="Script" path="res://game/weapons/weapon.gd" id="2_weapon"]
-[ext_resource type="Resource" path="res://game/weapons/carbine.tres" id="3_carbine"]
-[ext_resource type="Resource" path="res://game/weapons/grenade_launcher.tres" id="13_grenade_launcher"]
+[ext_resource type="Resource" path="res://game/weapons/pistol.tres" id="3_pistol"]
+[ext_resource type="PackedScene" path="res://game/weapons/effects/explosion_effect.tscn" id="13_explosion"]
 [ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="14_weapon_data"]
 [ext_resource type="Script" path="res://game/ui/ammo_display.gd" id="15_ammo"]
 [ext_resource type="Script" path="res://game/ui/damage_indicator.gd" id="16_damage_indicator"]
@@ -106,10 +106,11 @@ near = 0.05
 [node name="Weapon" type="Node3D" parent="Camera3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.18, -0.35)
 script = ExtResource("2_weapon")
-loadout = Array[ExtResource("14_weapon_data")]([ExtResource("3_carbine"), ExtResource("13_grenade_launcher")])
+loadout = Array[ExtResource("14_weapon_data")]([ExtResource("3_pistol")])
 impact_scene = ExtResource("4_impact")
 tracer_scene = ExtResource("5_tracer")
 damage_number_scene = ExtResource("7_damage_number")
+explosion_scene = ExtResource("13_explosion")
 
 [node name="Melee" type="Node3D" parent="Camera3D"]
 script = ExtResource("12_melee")
@@ -247,4 +248,25 @@ theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 18
 text = "WASD muoviti   ·   Spazio salta   ·   Shift corri
 Click sinistro spara   ·   R ricarica   ·   F pugno
+E apri casse e raccogli armi
 1 / 2 o rotella cambia arma   ·   Esc libera il mouse"
+
+[node name="InteractPrompt" type="RichTextLabel" parent="Hud"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -260.0
+offset_right = 400.0
+offset_bottom = -220.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/normal_font_size = 24
+bbcode_enabled = true
+scroll_active = false

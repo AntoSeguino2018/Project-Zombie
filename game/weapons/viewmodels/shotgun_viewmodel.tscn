@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gun"]
+albedo_color = Color(0.22, 0.2, 0.19, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wood"]
+albedo_color = Color(0.55, 0.33, 0.17, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_accent"]
+albedo_color = Color(0.95, 0.55, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_receiver"]
+material = SubResource("StandardMaterial3D_gun")
+size = Vector3(0.075, 0.085, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_barrel"]
+material = SubResource("StandardMaterial3D_gun")
+size = Vector3(0.045, 0.045, 0.42)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pump"]
+material = SubResource("StandardMaterial3D_wood")
+size = Vector3(0.07, 0.06, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stock"]
+material = SubResource("StandardMaterial3D_wood")
+size = Vector3(0.06, 0.1, 0.16)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shell"]
+material = SubResource("StandardMaterial3D_accent")
+size = Vector3(0.077, 0.02, 0.06)
+
+[node name="ShotgunViewmodel" type="Node3D"]
+
+[node name="Receiver" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("BoxMesh_receiver")
+
+[node name="Barrel" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, -0.3)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_barrel")
+
+[node name="Pump" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, -0.26)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_pump")
+
+[node name="Stock" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.18)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stock")
+
+[node name="Shell" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.03)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_shell")
+
+[node name="Muzzle" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, -0.52)

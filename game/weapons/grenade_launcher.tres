@@ -6,7 +6,9 @@
 
 [resource]
 script = ExtResource("1_data")
-display_name = "Lanciagranate prototipo"
+catalog_id = "grenade_launcher"
+display_name = "Lanciagranate"
+feminine = false
 viewmodel = ExtResource("2_viewmodel")
 damage = 20.0
 fire_rate = 1.4

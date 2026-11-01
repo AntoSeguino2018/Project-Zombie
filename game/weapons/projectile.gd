@@ -13,8 +13,6 @@ extends Node3D
 ## dove mostrare il numero del danno.
 signal dealt_damage(target: HealthComponent, amount: float, killed: bool, position: Vector3)
 
-const LAYER_WORLD := 1
-
 @export var impact_scene: PackedScene
 @export var explosion_scene: PackedScene
 
@@ -83,46 +81,11 @@ func _impact(collider: Object, point: Vector3, normal: Vector3) -> void:
 	queue_free()
 
 
-## Danno ad area: pieno al centro, 40% al bordo; i muri riparano.
+## Danno ad area (vedi Explosion): lo vedono tutti, lo calcola solo l'host.
 func _explode(center: Vector3) -> void:
-	if explosion_scene:
-		var effect: ExplosionEffect = explosion_scene.instantiate()
-		get_tree().current_scene.add_child(effect)
-		effect.play(center, _data.explosion_radius)
-	# Le macerie ancora spostabili vengono rilanciate (sono di ognuno, non sincronizzate).
-	RubbleField.of(self).push_sphere(center, _data.explosion_radius * 1.5, 10.0)
-	if not _authoritative:
-		return
-
-	var sphere := SphereShape3D.new()
-	sphere.radius = _data.explosion_radius
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = sphere
-	params.transform = Transform3D(Basis.IDENTITY, center)
-	params.collision_mask = _mask
-	params.exclude = _exclude
-	# Le strutture distruttibili controllano da sole quali blocchi sono nel raggio.
-	for structure: DestructibleBlocks in get_tree().get_nodes_in_group("destructibles"):
-		structure.damage_sphere(center, _data.explosion_radius, _data.explosion_damage, 8.0)
-	var hit_bodies := {}
-	for result in get_world_3d().direct_space_state.intersect_shape(params, 128):
-		var body: Node3D = result.collider
-		if hit_bodies.has(body):
-			continue
-		hit_bodies[body] = true
-		var health := HealthComponent.of(body)
-		if health == null or not health.is_alive():
-			continue
-		var body_center: Vector3 = body.center() if body is Enemy else body.global_position + Vector3.UP
-		if _blocked(center, body_center, body):
-			continue
-		var closeness := clampf(1.0 - center.distance_to(body_center) / _data.explosion_radius, 0.0, 1.0)
-		# Il punto colpito è il centro dell'esplosione: le corazze capiscono da che lato arriva.
-		_damage(health, _data.explosion_damage * lerpf(0.4, 1.0, closeness), center, body_center)
-		if body is Enemy and _data.explosion_knockback > 0.0:
-			var away := Vector3(body_center.x - center.x, 0.0, body_center.z - center.z).normalized()
-			body.apply_knockback(away * _data.explosion_knockback * lerpf(0.5, 1.0, closeness)
-					+ Vector3.UP * 5.0, 0.0, _source)
+	Explosion.show(self, explosion_scene, center, _data.explosion_radius)
+	if _authoritative:
+		Explosion.blast(self, center, _data, _source, _mask, _exclude, dealt_damage.emit)
 
 
 func _damage(health: HealthComponent, amount: float, hit_position: Vector3, number_position: Vector3) -> void:
@@ -130,13 +93,6 @@ func _damage(health: HealthComponent, amount: float, hit_position: Vector3, numb
 		return
 	var dealt := health.take_damage(amount, _source, hit_position)
 	dealt_damage.emit(health, dealt, not health.is_alive(), number_position)
-
-
-## Vero se tra il centro dell'esplosione e il bersaglio c'è un muro.
-func _blocked(from: Vector3, to: Vector3, target: Node) -> bool:
-	var query := PhysicsRayQueryParameters3D.create(from, to, LAYER_WORLD)
-	var result := get_world_3d().direct_space_state.intersect_ray(query)
-	return not result.is_empty() and result.collider != target
 
 
 func _face_velocity() -> void:

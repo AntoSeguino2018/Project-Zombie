@@ -1,0 +1,80 @@
+class_name WeaponCrate
+extends StaticBody3D
+## Cassa delle armi: guardandola e premendo E si apre e ne esce un'arma a caso
+## (vedi WeaponCatalog.roll), che resta a fluttuare sopra finché qualcuno non
+## la prende. Dopo refill_time secondi, se l'arma è stata presa, si richiude
+## piena. Per ora è gratis: dal passo 3.4 costerà soldi.
+##
+## In rete apertura, contenuto e richiusura li decide l'host; gli altri vedono
+## il coperchio aprirsi e l'arma comparire (PickupReplicator).
+
+## Secondi dall'apertura prima che si possa riaprire.
+@export var refill_time := 30.0
+## Altezza dell'arma che esce, sopra la base della cassa.
+@export var pickup_height := 1.15
+## Di quanto si apre il coperchio, in gradi.
+@export var open_angle_degrees := 110.0
+
+var is_open := false
+
+var _refill_left := 0.0
+var _pickup_id := 0
+var _rng := RandomNumberGenerator.new()
+var _lid_tween: Tween
+
+@onready var _lid: Node3D = $LidPivot
+
+
+func _ready() -> void:
+	_rng.randomize()
+	if multiplayer.is_server() and NetSession.is_online():
+		# Chi entra a partita iniziata vede le casse già aperte.
+		multiplayer.peer_connected.connect(func(id: int): _receive_open.rpc_id(id, is_open))
+
+
+func _physics_process(delta: float) -> void:
+	if not is_open or not multiplayer.is_server():
+		return
+	_refill_left -= delta
+	if _refill_left <= 0.0 and instance_from_id(_pickup_id) == null:
+		_set_open(false)
+
+
+## Testo da mostrare quando il giocatore la guarda; vuoto = niente da fare.
+func interaction_text(_player: FpsController) -> String:
+	return "" if is_open else "Apri la cassa"
+
+
+## Sull'host: il giocatore apre la cassa.
+func interact(_player: FpsController, _slot: int) -> void:
+	if is_open:
+		return
+	_set_open(true)
+	_refill_left = refill_time
+	var spec := WeaponCatalog.roll(_rng)
+	var at := global_position + Vector3.UP * pickup_height
+	var replicator := PickupReplicator.of(self)
+	var pickup: WeaponPickup = replicator.spawn_pickup(spec, at) if replicator else null
+	_pickup_id = pickup.get_instance_id() if pickup else 0
+
+
+func _set_open(open: bool) -> void:
+	_apply_open(open)
+	if NetSession.is_online():
+		_receive_open.rpc(open)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_open(open: bool) -> void:
+	_apply_open(open)
+
+
+func _apply_open(open: bool) -> void:
+	if open == is_open and _lid_tween:
+		return
+	is_open = open
+	if _lid_tween:
+		_lid_tween.kill()
+	_lid_tween = create_tween()
+	_lid_tween.tween_property(_lid, "rotation:x", deg_to_rad(open_angle_degrees) if open else 0.0, 0.35) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

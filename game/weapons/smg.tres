@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="1_data"]
+[ext_resource type="PackedScene" path="res://game/weapons/viewmodels/smg_viewmodel.tscn" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_data")
+catalog_id = "smg"
+display_name = "Mitraglietta"
+viewmodel = ExtResource("2_viewmodel")
+damage = 7.0
+fire_rate = 14.0
+automatic = true
+max_range = 120.0
+spread_degrees = 2.2
+magazine_size = 40
+reload_time = 1.8
+recoil_pitch_degrees = 0.45
+recoil_yaw_degrees = 0.45
+recoil_recovery = 14.0

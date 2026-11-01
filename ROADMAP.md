@@ -72,14 +72,15 @@ Modello: ognuno muove il proprio giocatore (risposta immediata), l'host decide t
 - [ ] 2.6 Integrazione Steam (lobby, inviti, relay) *(può slittare dopo la Fase 3)*
 
 ### Fase 3: Core loop roguelike (~60–100 ore)
-- [ ] Struttura della run: livello → obiettivo → livello successivo → fine run
-- [ ] **Director** degli spawn: crediti che crescono nel tempo, il director "compra" nemici
-- [ ] Difficoltà che sale col tempo (incentivo a non perdere tempo)
-- [ ] Valuta, casse/terminali, oggetti passivi **impilabili** (stack)
-- [ ] Sistema oggetti data-driven (ogni oggetto è una risorsa con i suoi parametri)
-- [ ] Giocatore a terra → rianimazione da parte dei compagni
-- [ ] Schermata di fine run (statistiche)
-- [ ] Generazione livelli: arena fatta a mano + spawn casuali di casse/nemici/obiettivi (più semplice e controllabile del procedurale puro)
+Scelte: una sola mappa molto grande, run a **ondate** con budget di pericolosità crescente, soldi personali (vedi [DESIGN.md](DESIGN.md)).
+- [x] 3.1 **Armi trovabili:** pistola di partenza, fucile a pompa e mitraglietta oltre a carabina e lanciagranate; tratti casuali che cambiano numeri e nome (rapida, pesante, precisa, caricatore esteso, ricarica lampo); trucchi che rendono l'arma *truccata* (rimbalzante, perforante, esplosiva, incendiaria, doppia canna); casse che si aprono con E e si riempiono dopo 30 s; due armi in mano e scambio con quella in mano, che resta a terra; tutto deciso dall'host *(le sbroccate arriveranno con le idee del gruppo)*
+- [ ] 3.2 **Ondate:** budget di pericolosità che sale, costo per tipo di zombie, composizione diversa a ogni ondata, spawn fuori vista; sostituisce gli spawner provvisori
+- [ ] 3.3 Giocatore a terra → rianimazione da parte dei compagni; run persa se cadono tutti
+- [ ] 3.4 Soldi personali dagli zombie, macchinette del caffè (boost), casse a pagamento
+- [ ] 3.5 Oggetti passivi **impilabili**, definiti come dati (ogni oggetto è una risorsa con i suoi parametri)
+- [ ] 3.6 Mappa grande in greybox, con zone, casse e macchinette
+- [ ] 3.7 Fine run e schermata con le statistiche
+- [ ] 3.8 Playtest della run completa
 
 ### Fase 4: Personaggi (~40–60 ore per i primi 2)
 - [ ] Sistema classi: 4 slot abilità (primaria, secondaria, utilità, speciale) + passiva

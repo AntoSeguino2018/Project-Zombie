@@ -6,11 +6,16 @@ extends CharacterBody3D
 ## ne ha l'autorità (input, camera, movimento) e invia il suo stato con
 ## MultiplayerSynchronizer; sugli altri il giocatore insegue quello stato in
 ## modo morbido. Da soli il giocatore è sempre quello locale.
+## Guardando un oggetto interagibile (casse, armi a terra) l'HUD mostra cosa
+## si può fare con E; l'azione la esegue l'host, che controlla la distanza.
 ## Vita, morte, caduta fuori dal livello e rinascita le decide l'host; chi
 ## controlla il giocatore si limita a mostrarle (HUD, visuale a terra) e gli
 ## altri vedono il corpo cadere a terra.
 ## La camera è top_level e segue la testa interpolata, così il movimento resta
 ## fluido anche su monitor a più di 60 Hz, mentre la rotazione del mouse è immediata.
+
+const LAYER_WORLD := 1
+const LAYER_INTERACTABLE := 16
 
 @export_group("Movimento")
 ## Velocità camminando, in m/s.
@@ -29,6 +34,10 @@ extends CharacterBody3D
 @export var mouse_sensitivity := 0.0025
 ## Quanto si può guardare in alto o in basso, in gradi.
 @export_range(10.0, 89.0) var max_pitch_degrees := 89.0
+
+@export_group("Interazione")
+## Distanza massima da cui si usano casse e armi a terra, in metri.
+@export var interact_distance := 2.6
 
 @export_group("Rete")
 ## Rapidità con cui un giocatore remoto raggiunge l'ultima posizione ricevuta.
@@ -71,6 +80,8 @@ var _body_rest: Transform3D
 var _visor_rest: Transform3D
 var _name_tag_height := 0.0
 var _body_tween: Tween
+## Oggetto interagibile guardato in questo momento (null = nessuno).
+var _interact_target: Node
 ## Statistiche della vita in corso, per l'HUD e la schermata di morte.
 var _kills := 0
 var _alive_time := 0.0
@@ -193,7 +204,13 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_handle_fire()
 	_handle_melee()
+	_handle_interaction()
 	_publish_state()
+
+
+## Armi portate dal giocatore.
+func weapon() -> Weapon:
+	return _weapon
 
 
 ## Sull'host, per ogni giocatore: chi cade fuori dal livello muore, chi è
@@ -246,6 +263,51 @@ func _physics_process_dead(delta: float) -> void:
 	_hud.update_respawn_countdown(_respawn_left)
 
 
+## Cerca l'oggetto interagibile sotto il mirino, aggiorna la scritta e, se si
+## preme E, lo usa (sull'host direttamente, altrimenti chiedendolo all'host).
+func _handle_interaction() -> void:
+	_interact_target = null
+	var text := ""
+	var aim := -_aim_basis().z
+	var query := PhysicsRayQueryParameters3D.create(_head.global_position,
+			_head.global_position + aim * interact_distance, LAYER_WORLD | LAYER_INTERACTABLE, [get_rid()])
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+	if result and result.collider.has_method("interaction_text"):
+		text = result.collider.interaction_text(self)
+		if text != "":
+			_interact_target = result.collider
+	_hud.show_prompt(text)
+	if _interact_target and Input.is_action_just_pressed("interact"):
+		interact_with(_interact_target)
+
+
+## Usa target: sull'host direttamente, altrimenti chiedendolo all'host.
+func interact_with(target: Node) -> void:
+	if multiplayer.is_server():
+		_host_interact(target, _weapon.current_slot())
+	else:
+		_request_interact.rpc_id(1, target.get_path(), _weapon.current_slot())
+
+
+## Sull'host: il giocatore usa target, se è vivo e abbastanza vicino. slot è
+## l'arma che ha in mano (quella da scambiare).
+func _host_interact(target: Node, slot: int) -> void:
+	if not _health.is_alive() or not target is Node3D or not target.has_method("interact"):
+		return
+	# Un po' di margine: la posizione di un giocatore remoto arriva in ritardo.
+	if _head.global_position.distance_to(target.global_position) > interact_distance + 1.5:
+		return
+	target.interact(self, slot)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_interact(target_path: NodePath, slot: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var target := get_node_or_null(target_path)
+		if target:
+			_host_interact(target, slot)
+
+
 func _handle_melee() -> void:
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or not _melee.can_attack():
 		return
@@ -292,6 +354,7 @@ func _on_died(_source: Node) -> void:
 	if not is_multiplayer_authority():
 		return
 	_weapon.visible = false
+	_hud.show_prompt("")
 	_best_time = maxf(_best_time, _alive_time)
 	_hud.show_death(_kills, _alive_time, _best_time)
 	_hud.update_respawn_countdown(_respawn_left)
@@ -336,6 +399,7 @@ func _respawn() -> void:
 	_death_blend = 0.0
 	reset_physics_interpolation()
 	_weapon.visible = true
+	_weapon.refill()
 	_kills = 0
 	_alive_time = 0.0
 	_hud.update_stats(_kills, _alive_time)
