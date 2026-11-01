@@ -12,8 +12,10 @@ extends Node3D
 ## Il punto di origine è al centro della base. Le collisioni sono divise in
 ## pezzi da CHUNK blocchi per lato (corpi figli): quando salta un blocco si
 ## ricostruisce solo il suo pezzo e non tutta la struttura.
-## Predisposto per la rete: in multiplayer i danni li deciderà l'host e ai
-## client basterà ricevere quali blocchi sono saltati.
+## In rete danni e crolli li calcola solo l'host, che manda a tutti quali
+## blocchi sono saltati; i detriti invece li crea ognuno per conto suo (stessa
+## origine e spinta, forme a caso). Chi entra a partita iniziata riceve subito
+## quali blocchi mancano.
 
 ## Mondo: la struttura protegge come un muro normale finché sta in piedi.
 const LAYER_WORLD := 1
@@ -74,6 +76,8 @@ var _visual := MultiMeshInstance3D.new()
 func _ready() -> void:
 	if not Engine.is_editor_hint():
 		add_to_group("destructibles")
+		if multiplayer.is_server():
+			multiplayer.peer_connected.connect(_send_state)
 	_rebuild()
 
 
@@ -97,6 +101,8 @@ func block_count() -> int:
 ## tutta vicino al centro e sempre meno verso il bordo. I pezzi volano via dal
 ## centro a push_speed m/s. Restituisce quanti blocchi sono saltati.
 func damage_sphere(center: Vector3, radius: float, amount: float, push_speed := 6.0) -> int:
+	if not multiplayer.is_server():
+		return 0
 	var local_center := to_local(center)
 	var broken: Array[int] = []
 	# Si controllano solo le celle nel cubo attorno al raggio, non tutta la struttura.
@@ -121,6 +127,8 @@ func damage_sphere(center: Vector3, radius: float, amount: float, push_speed := 
 ## Danno a un solo blocco: quello più vicino a point (pugni). I pezzi partono
 ## con velocità push. Restituisce quanti blocchi sono saltati.
 func damage_point(point: Vector3, amount: float, push := Vector3.ZERO) -> int:
+	if not multiplayer.is_server():
+		return 0
 	var local_point := to_local(point)
 	var nearest := -1
 	var nearest_distance := INF
@@ -211,15 +219,34 @@ func _rebuild() -> void:
 		_shapes.append(shape)
 
 
-## Toglie i blocchi indicati, fa crollare quelli rimasti senza appoggio e
-## trasforma tutto in detriti (oltre il limite, in polvere).
+## Sull'host: toglie i blocchi indicati e quelli rimasti senza appoggio, qui
+## e sugli altri partecipanti.
 func _break(indices: Array[int], origin: Vector3, push_speed: float) -> void:
 	if indices.is_empty():
 		return
+	var broken := PackedInt32Array(indices)
+	for i in broken:
+		_alive[i] = 0
+	var loose := PackedInt32Array(_unsupported_blocks())
+	_collapse(broken, loose, origin, push_speed)
+	if NetSession.is_online():
+		_receive_break.rpc(broken, loose, origin, push_speed)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_break(broken: PackedInt32Array, loose: PackedInt32Array, origin: Vector3,
+		push_speed: float) -> void:
+	_collapse(broken, loose, origin, push_speed)
+
+
+## Toglie i blocchi saltati (che volano via da origin) e quelli crollati (che
+## cadono e basta) e li trasforma in detriti (oltre il limite, in polvere).
+func _collapse(broken: PackedInt32Array, loose: PackedInt32Array, origin: Vector3,
+		push_speed: float) -> void:
 	var budget := max_debris_per_break
 	var dust_at := Vector3.ZERO
 	var dust_count := 0
-	for i in indices:
+	for i in broken:
 		_remove_block(i)
 		var center := to_global(_block_center(i))
 		var away := (center - origin).normalized() if center.distance_to(origin) > 0.01 else Vector3.UP
@@ -228,7 +255,7 @@ func _break(indices: Array[int], origin: Vector3, push_speed: float) -> void:
 		else:
 			dust_at += center
 			dust_count += 1
-	for i in _unsupported_blocks():
+	for i in loose:
 		_remove_block(i)
 		var center := to_global(_block_center(i))
 		if budget > 0 and _spawn_debris(center, Vector3.ZERO):
@@ -238,6 +265,22 @@ func _break(indices: Array[int], origin: Vector3, push_speed: float) -> void:
 			dust_count += 1
 	if dust_count > 0:
 		_spawn_dust(dust_at / dust_count, dust_count)
+	CombatEvents.bus.terrain_changed.emit(self)
+
+
+## Sull'host: manda a chi è appena entrato quali blocchi mancano già.
+func _send_state(peer_id: int) -> void:
+	if _alive.has(0):
+		_receive_state.rpc_id(peer_id, _alive)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_state(alive: PackedByteArray) -> void:
+	if alive.size() != _alive.size():
+		return
+	for i in alive.size():
+		if alive[i] == 0 and _alive[i] == 1:
+			_remove_block(i)
 	CombatEvents.bus.terrain_changed.emit(self)
 
 

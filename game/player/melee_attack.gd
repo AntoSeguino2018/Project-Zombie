@@ -6,8 +6,8 @@ extends Node3D
 ## contro i muri.
 ##
 ## Il nodo è anche il pugno in prima persona: sta sotto la camera.
-## Predisposto per la rete: attack() riceve origine e direzione come parametri,
-## così in futuro potrà essere validato dall'host.
+## In rete chi tira il pugno vede subito l'animazione, ma bersagli, danni,
+## spinte e muri li calcola l'host, che poi gli rimanda numeri e hitmarker.
 
 ## Il pugno ha fatto danno a qualcosa con un HealthComponent.
 signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
@@ -69,9 +69,30 @@ func can_attack() -> bool:
 func attack(origin: Vector3, forward: Vector3, attacker: Node3D) -> void:
 	_cooldown_left = cooldown
 	_animate()
+	if multiplayer.is_server():
+		_strike(origin, forward, attacker)
+	else:
+		_request_strike.rpc_id(1, origin, forward)
+
+
+func _strike(origin: Vector3, forward: Vector3, attacker: Node3D) -> void:
 	for enemy in _targets(origin, forward):
 		_hit(enemy, origin, forward, attacker)
 	_hit_structure(origin, forward)
+
+
+## Sull'host: il pugno di un altro partecipante.
+@rpc("any_peer", "call_remote", "reliable")
+func _request_strike(origin: Vector3, forward: Vector3) -> void:
+	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	var health := HealthComponent.of(owner)
+	if health and not health.is_alive():
+		return
+	# Il pugno deve partire dalla testa del giocatore, non da lontano.
+	if origin.distance_to(owner.global_position) > 3.0:
+		return
+	_strike(origin, forward, owner)
 
 
 ## Se davanti, a portata di pugno, c'è un muro distruttibile, ne stacca un pezzo.
@@ -117,9 +138,7 @@ func _hit(enemy: Enemy, origin: Vector3, forward: Vector3, attacker: Node3D) -> 
 	var toward_attacker := Vector3(origin.x - enemy.center().x, 0.0, origin.z - enemy.center().z)
 	var point := enemy.center() + toward_attacker.normalized() * 0.4
 	var dealt := health.take_damage(heavy_damage if heavy_hand else damage, attacker, point)
-	var killed := not health.is_alive()
-	_spawn_damage_number(point, dealt, killed)
-	dealt_damage.emit(health, dealt, killed)
+	_report_damage(health, dealt, not health.is_alive(), point)
 
 	var direction := Vector3(enemy.global_position.x - origin.x, 0.0, enemy.global_position.z - origin.z)
 	if direction.length() < 0.1:
@@ -146,6 +165,25 @@ func _animate() -> void:
 	tween.tween_property(_fist, "position", _fist_rest, 0.18) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_fist.hide)
+
+
+## Numero sul bersaglio e hitmarker solo per chi ha tirato il pugno.
+func _report_damage(target: HealthComponent, dealt: float, killed: bool, point: Vector3) -> void:
+	if is_multiplayer_authority():
+		_show_damage(target, dealt, killed, point)
+	else:
+		_confirm_damage.rpc_id(get_multiplayer_authority(), target.get_path(), dealt, killed, point)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _confirm_damage(target_path: NodePath, dealt: float, killed: bool, point: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_show_damage(get_node_or_null(target_path) as HealthComponent, dealt, killed, point)
+
+
+func _show_damage(target: HealthComponent, dealt: float, killed: bool, point: Vector3) -> void:
+	_spawn_damage_number(point, dealt, killed)
+	dealt_damage.emit(target, dealt, killed)
 
 
 func _spawn_damage_number(point: Vector3, amount: float, killed: bool) -> void:

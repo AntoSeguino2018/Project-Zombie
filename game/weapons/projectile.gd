@@ -5,16 +5,18 @@ extends Node3D
 ##
 ## A ogni tick si controlla con un raggio il tratto tra la posizione vecchia e
 ## quella nuova: così anche i proiettili velocissimi non attraversano i muri.
-## Predisposto per la rete: in multiplayer i proiettili li simulerà l'host.
+## In rete ogni partecipante simula il suo proiettile, con la stessa partenza:
+## solo quello dell'host (autorevole) fa danni e rompe le strutture, gli
+## altri mostrano soltanto volo, impatto ed esplosione.
 
-## Il proiettile (o la sua esplosione) ha fatto danno a qualcosa.
-signal dealt_damage(target: HealthComponent, amount: float, killed: bool)
+## Il proiettile (o la sua esplosione) ha fatto danno a qualcosa; position è
+## dove mostrare il numero del danno.
+signal dealt_damage(target: HealthComponent, amount: float, killed: bool, position: Vector3)
 
 const LAYER_WORLD := 1
 
 @export var impact_scene: PackedScene
 @export var explosion_scene: PackedScene
-@export var damage_number_scene: PackedScene
 
 var velocity := Vector3.ZERO
 var _data: WeaponData
@@ -22,15 +24,18 @@ var _source: Node
 var _exclude: Array[RID] = []
 var _mask := 0
 var _life := 0.0
+var _authoritative := true
 
 @onready var _trail: CPUParticles3D = get_node_or_null("Trail")
 
 
 ## Fa partire il proiettile da start verso direction. source è chi ha sparato;
 ## exclude sono i corpi da ignorare; mask sono i layer che può colpire.
+## Se authoritative è falso il proiettile è solo una copia visiva: niente danni.
 func launch(start: Vector3, direction: Vector3, data: WeaponData, source: Node,
-		exclude: Array[RID], mask: int) -> void:
+		exclude: Array[RID], mask: int, authoritative := true) -> void:
 	_data = data
+	_authoritative = authoritative
 	_source = source
 	_exclude = exclude
 	_mask = mask
@@ -67,7 +72,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _impact(collider: Object, point: Vector3, normal: Vector3) -> void:
-	if _data.damage > 0.0:
+	if _authoritative and _data.damage > 0.0:
 		_damage(HealthComponent.of(collider), _data.damage, point, point)
 	if _data.explosion_radius > 0.0:
 		_explode(point + normal * 0.1)
@@ -84,6 +89,10 @@ func _explode(center: Vector3) -> void:
 		var effect: ExplosionEffect = explosion_scene.instantiate()
 		get_tree().current_scene.add_child(effect)
 		effect.play(center, _data.explosion_radius)
+	# Le macerie ancora spostabili vengono rilanciate (sono di ognuno, non sincronizzate).
+	RubbleField.of(self).push_sphere(center, _data.explosion_radius * 1.5, 10.0)
+	if not _authoritative:
+		return
 
 	var sphere := SphereShape3D.new()
 	sphere.radius = _data.explosion_radius
@@ -95,8 +104,6 @@ func _explode(center: Vector3) -> void:
 	# Le strutture distruttibili controllano da sole quali blocchi sono nel raggio.
 	for structure: DestructibleBlocks in get_tree().get_nodes_in_group("destructibles"):
 		structure.damage_sphere(center, _data.explosion_radius, _data.explosion_damage, 8.0)
-	# Le macerie ancora spostabili vengono rilanciate.
-	RubbleField.of(self).push_sphere(center, _data.explosion_radius * 1.5, 10.0)
 	var hit_bodies := {}
 	for result in get_world_3d().direct_space_state.intersect_shape(params, 128):
 		var body: Node3D = result.collider
@@ -122,12 +129,7 @@ func _damage(health: HealthComponent, amount: float, hit_position: Vector3, numb
 	if health == null or not health.is_alive():
 		return
 	var dealt := health.take_damage(amount, _source, hit_position)
-	var killed := not health.is_alive()
-	if damage_number_scene and dealt > 0.0:
-		var number: DamageNumber = damage_number_scene.instantiate()
-		get_tree().current_scene.add_child(number)
-		number.show_value(dealt, number_position, killed)
-	dealt_damage.emit(health, dealt, killed)
+	dealt_damage.emit(health, dealt, not health.is_alive(), number_position)
 
 
 ## Vero se tra il centro dell'esplosione e il bersaglio c'è un muro.

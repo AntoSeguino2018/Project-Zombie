@@ -20,7 +20,10 @@ func _ready() -> void:
 	spawn_function = _create_player
 	var error := NetSession.start(multiplayer)
 	if error != OK:
-		NetSession.leave(get_tree(), "Impossibile avviare la partita (errore %d)." % error)
+		var reason := "Impossibile avviare la partita (errore %d)." % error
+		if NetSession.mode == NetSession.Mode.HOST:
+			reason = "La porta %d è già occupata: forse c'è già una partita ospitata su questo PC. Per giocarci usa «Entra»." % NetSession.port
+		NetSession.leave(get_tree(), reason)
 		return
 	if multiplayer.is_server():
 		multiplayer.peer_connected.connect(_add_player)

@@ -28,6 +28,10 @@ func _ready() -> void:
 	# Le CSG costruiscono la loro geometria alla fine del primo frame: si aspetta
 	# che esista.
 	await get_tree().process_frame
+	# Nel frattempo il livello può essere già stato chiuso (es. partita che non
+	# riesce a partire e torna al menu).
+	if not is_inside_tree():
+		return
 	# Si cuoce una copia e la si assegna: è l'assegnazione ad aggiornare la mappa.
 	var baked: NavigationMesh = navigation_mesh.duplicate()
 	NavigationServer3D.bake_from_source_geometry_data(baked, _collect_geometry())
@@ -39,6 +43,9 @@ func is_rebaking() -> bool:
 
 
 func _on_terrain_changed(_source: Node) -> void:
+	# Gli zombie li muove solo l'host: agli altri la mappa aggiornata non serve.
+	if not multiplayer.is_server():
+		return
 	if _rebake_timer.is_stopped():
 		_rebake_timer.start(rebake_delay)
 

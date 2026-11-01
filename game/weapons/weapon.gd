@@ -6,8 +6,11 @@ extends Node3D
 ##
 ## Il nodo sta sotto la camera e contiene il modello in prima persona dell'arma
 ## equipaggiata: a ogni colpo arretra e si alza, poi torna in posizione.
-## Predisposto per la rete: fire() riceve origine e direzione come parametri,
-## così in futuro potrà essere eseguito o validato dall'host.
+## In rete chi spara vede subito i suoi colpi (scia, impatti, proiettili) e
+## li manda agli altri, che li mostrano dall'arma del suo giocatore. Il danno
+## invece lo decide l'host: riceve cosa ha colpito il tiratore, controlla che
+## sia plausibile, applica il danno della sua copia dell'arma e rimanda al
+## tiratore quanto ha inflitto (numeri e hitmarker).
 
 signal fired
 signal hit(collider: Object, position: Vector3, normal: Vector3)
@@ -150,6 +153,7 @@ func start_reload() -> void:
 
 
 ## Spara un colpo da origin verso direction. exclude: corpi da ignorare (chi spara).
+## In rete lo chiama solo chi controlla il giocatore.
 func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void:
 	_cooldown += 1.0 / data.fire_rate
 	_kick = 1.0
@@ -172,8 +176,11 @@ func _fire_hitscan(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> 
 		end = result.position
 		_spawn_impact(result.position, result.normal)
 		hit.emit(result.collider, result.position, result.normal)
-		_apply_damage(result.collider, result.position)
-	_spawn_tracer(muzzle.global_position if muzzle else origin, end)
+		_damage_target(result.collider, result.position)
+	var from := muzzle.global_position if muzzle else origin
+	_spawn_tracer(from, end)
+	if NetSession.is_online():
+		_show_remote_shot.rpc(from, end, result.normal if result else Vector3.ZERO)
 
 
 func _fire_projectile(origin: Vector3, direction: Vector3, exclude: Array[RID]) -> void:
@@ -190,10 +197,19 @@ func _fire_projectile(origin: Vector3, direction: Vector3, exclude: Array[RID]) 
 	if start.distance_to(target) > 1.0:
 		launch_direction = (target - start).normalized()
 
-	var projectile: Projectile = data.projectile_scene.instantiate()
+	_launch_projectile(data, start, launch_direction, exclude)
+	if NetSession.is_online():
+		_launch_remote_projectile.rpc(_slot, start, launch_direction)
+
+
+## Fa partire un proiettile; solo quello dell'host fa danni.
+func _launch_projectile(weapon_data: WeaponData, start: Vector3, direction: Vector3,
+		exclude: Array[RID]) -> void:
+	var projectile: Projectile = weapon_data.projectile_scene.instantiate()
 	get_tree().current_scene.add_child(projectile)
 	projectile.dealt_damage.connect(_on_projectile_dealt_damage)
-	projectile.launch(start, launch_direction, data, owner, exclude, TARGET_MASK)
+	projectile.launch(start, direction, weapon_data, owner, exclude, TARGET_MASK,
+			multiplayer.is_server())
 
 
 func _apply_spread(direction: Vector3) -> Vector3:
@@ -205,19 +221,87 @@ func _apply_spread(direction: Vector3) -> Vector3:
 	return tilted.rotated(direction, randf() * TAU)
 
 
-func _apply_damage(collider: Object, point: Vector3) -> void:
+## Il colpo ha preso qualcosa: il danno lo applica l'host (subito, se siamo noi).
+func _damage_target(collider: Object, point: Vector3) -> void:
 	var target := HealthComponent.of(collider)
 	if not target or not target.is_alive():
 		return
-	# Si mostra il danno inflitto davvero: corazze e punti deboli lo cambiano.
-	var dealt := target.take_damage(data.damage, owner, point)
-	var killed := not target.is_alive()
-	_spawn_damage_number(point, dealt, killed)
+	if multiplayer.is_server():
+		_host_damage(target, data.damage, point)
+	else:
+		_request_damage.rpc_id(1, target.get_path(), point, _slot)
+
+
+func _host_damage(target: HealthComponent, amount: float, point: Vector3) -> void:
+	var dealt := target.take_damage(amount, owner, point)
+	_report_damage(target, dealt, not target.is_alive(), point)
+
+
+func _on_projectile_dealt_damage(target: HealthComponent, amount: float, killed: bool,
+		point: Vector3) -> void:
+	_report_damage(target, amount, killed, point)
+
+
+## Fa sapere a chi ha sparato quanto danno ha inflitto davvero (corazze e
+## punti deboli lo cambiano): numero sul bersaglio e hitmarker solo per lui.
+func _report_damage(target: HealthComponent, dealt: float, killed: bool, point: Vector3) -> void:
+	if is_multiplayer_authority():
+		_show_damage(target, dealt, killed, point)
+	else:
+		_confirm_damage.rpc_id(get_multiplayer_authority(), target.get_path(), dealt, killed, point)
+
+
+func _show_damage(target: HealthComponent, dealt: float, killed: bool, point: Vector3) -> void:
+	if dealt > 0.0:
+		_spawn_damage_number(point, dealt, killed)
 	dealt_damage.emit(target, dealt, killed)
 
 
-func _on_projectile_dealt_damage(target: HealthComponent, amount: float, killed: bool) -> void:
-	dealt_damage.emit(target, amount, killed)
+## Sull'host: un colpo istantaneo del tiratore ha preso target_path.
+@rpc("any_peer", "call_remote", "reliable")
+func _request_damage(target_path: NodePath, point: Vector3, slot: int) -> void:
+	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	var target := get_node_or_null(target_path) as HealthComponent
+	if target == null or not target.is_alive() or not _shooter_alive() 			or slot < 0 or slot >= loadout.size():
+		return
+	# Niente colpi impossibili: il punto deve essere a portata dell'arma.
+	if owner.global_position.distance_to(point) > loadout[slot].max_range + 5.0:
+		return
+	_host_damage(target, loadout[slot].damage, point)
+
+
+## Sul tiratore: l'host conferma il danno di un suo colpo.
+@rpc("any_peer", "call_remote", "reliable")
+func _confirm_damage(target_path: NodePath, dealt: float, killed: bool, point: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() != 1:
+		return
+	_show_damage(get_node_or_null(target_path) as HealthComponent, dealt, killed, point)
+
+
+## Sugli altri: scia e impatto di un colpo istantaneo del tiratore.
+## normal è zero se il colpo non ha preso niente.
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _show_remote_shot(from: Vector3, to: Vector3, normal: Vector3) -> void:
+	if normal != Vector3.ZERO:
+		_spawn_impact(to, normal)
+	_spawn_tracer(from, to)
+
+
+## Sugli altri: lo stesso proiettile del tiratore, con la stessa partenza.
+## Sull'host è quello vero, che fa danni.
+@rpc("authority", "call_remote", "reliable")
+func _launch_remote_projectile(slot: int, start: Vector3, direction: Vector3) -> void:
+	if slot < 0 or slot >= loadout.size() or not loadout[slot].projectile_scene:
+		return
+	if multiplayer.is_server() and not _shooter_alive():
+		return
+	_launch_projectile(loadout[slot], start, direction, [])
+
+
+func _shooter_alive() -> bool:
+	var health := HealthComponent.of(owner)
+	return health == null or health.is_alive()
 
 
 func _raycast(from: Vector3, to: Vector3, exclude: Array[RID], mask: int) -> Dictionary:

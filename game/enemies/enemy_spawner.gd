@@ -4,6 +4,8 @@ extends Marker3D
 ## non ce ne sono max_alive vivi insieme. Quando ne muore uno, dopo un po' ne
 ## arriva un altro. Provvisorio: più avanti gli spawn li deciderà il director
 ## della Fase 3.
+## Gli zombie li crea solo l'host; se nel livello c'è un EnemyReplicator
+## compaiono anche sugli altri partecipanti.
 
 ## Tipi di zombie tra cui scegliere. Ripetere un tipo lo rende più frequente.
 @export var enemy_scenes: Array[PackedScene] = []
@@ -19,8 +21,7 @@ var _timer := Timer.new()
 
 
 func _ready() -> void:
-	# In rete i nemici arriveranno con il passo 2.3 (simulati dall'host).
-	if not is_multiplayer_authority() or NetSession.is_online():
+	if not multiplayer.is_server():
 		return
 	_timer.one_shot = true
 	_timer.timeout.connect(_on_timer)
@@ -36,10 +37,19 @@ func _on_timer() -> void:
 
 
 func _spawn(scene: PackedScene) -> void:
-	var enemy: Node3D = scene.instantiate()
 	# Un piccolo scarto a caso, così non nascono uno dentro l'altro.
-	enemy.transform = transform.translated(Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)))
-	add_sibling(enemy)
+	var at := position + Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
+	var replicator := EnemyReplicator.of(self)
+	var enemy: Node3D
+	if replicator:
+		enemy = replicator.spawn_enemy(scene, at, rotation.y)
+	else:
+		enemy = scene.instantiate()
+		enemy.position = at
+		enemy.rotation.y = rotation.y
+		add_sibling(enemy)
+	if enemy == null:
+		return
 	_alive.append(enemy)
 	HealthComponent.of(enemy).died.connect(_on_enemy_died.bind(enemy), CONNECT_ONE_SHOT)
 

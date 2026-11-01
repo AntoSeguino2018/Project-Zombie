@@ -64,9 +64,10 @@ Tutto con cubi e capsule, zero grafica definitiva.
 ### Fase 2: Fondamenta di rete (~50–80 ore)
 Modello: ognuno muove il proprio giocatore (risposta immediata), l'host decide tutto il resto (nemici, danni, distruzione, oggetti).
 - [x] 2.1 Menu (solo / ospita / entra via IP), un giocatore per partecipante (fino a 4), movimento sincronizzato con interpolazione, colori, visiera e nomi *(in rete gli zombie sono spenti fino al 2.3)*
-- [ ] 2.2 Combattimento in rete: sparo, pugni e danni decisi dall'host, effetti visti da tutti, vita, morte e rinascita sincronizzate
-- [ ] 2.3 Nemici simulati solo dall'host e replicati ai client (posizione, attacchi, morte)
-- [ ] 2.4 Proiettili, esplosioni e strutture distruttibili sincronizzati
+- [x] 2.2 Combattimento in rete: chi spara vede subito i suoi colpi, l'host applica i danni e rimanda numeri e hitmarker; scie, impatti, granate ed esplosioni visti da tutti; vita, morte (corpo a terra), caduta fuori dal livello e rinascita decise dall'host *(muri rotti solo sull'host fino al 2.4)*
+- [x] 2.3 Zombie creati e simulati solo dall'host e replicati ai client: posizione, direzione e posa del corpo (attacchi, volo, stordimento, caduta da morti), danni e spinte ai giocatori, uccisioni contate per chi le fa; chi entra dopo vede gli zombie già in campo
+- [x] 2.4 Proiettili ed esplosioni (passo 2.2) e strutture distruttibili sincronizzati: l'host calcola danni e crolli e manda quali blocchi sono saltati, i detriti sono di ognuno; chi entra dopo riceve i muri già rotti
+  - Da rivedere più avanti: la banda usata dagli zombie (posizione 30 volte al secondo) va misurata con molti zombie e su internet (passo 2.5)
 - [ ] 2.5 Test con 4 istanze sul tuo PC, poi con amici su internet
 - [ ] 2.6 Integrazione Steam (lobby, inviti, relay) *(può slittare dopo la Fase 3)*
 

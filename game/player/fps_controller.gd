@@ -6,6 +6,9 @@ extends CharacterBody3D
 ## ne ha l'autorità (input, camera, movimento) e invia il suo stato con
 ## MultiplayerSynchronizer; sugli altri il giocatore insegue quello stato in
 ## modo morbido. Da soli il giocatore è sempre quello locale.
+## Vita, morte, caduta fuori dal livello e rinascita le decide l'host; chi
+## controlla il giocatore si limita a mostrarle (HUD, visuale a terra) e gli
+## altri vedono il corpo cadere a terra.
 ## La camera è top_level e segue la testa interpolata, così il movimento resta
 ## fluido anche su monitor a più di 60 Hz, mentre la rotazione del mouse è immediata.
 
@@ -58,8 +61,16 @@ var _recoil := Vector2.ZERO
 var _push := Vector3.ZERO
 var _spawn_transform: Transform3D
 var _respawn_left := 0.0
+## Dopo la rinascita l'host aspetta un po' prima di controllare le cadute: la
+## nuova posizione di un giocatore remoto arriva con qualche istante di ritardo.
+var _fall_check_delay := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si muore.
 var _death_blend := 0.0
+## Posa da vivo del corpo, per rialzarlo alla rinascita.
+var _body_rest: Transform3D
+var _visor_rest: Transform3D
+var _name_tag_height := 0.0
+var _body_tween: Tween
 ## Statistiche della vita in corso, per l'HUD e la schermata di morte.
 var _kills := 0
 var _alive_time := 0.0
@@ -90,8 +101,12 @@ func _ready() -> void:
 	_spawn_transform = global_transform
 	sync_position = global_position
 	sync_yaw = _yaw
+	_body_rest = _body_mesh.transform
+	_visor_rest = _visor.transform
+	_name_tag_height = _name_tag.position.y
 	_apply_player_color()
 	_name_tag.text = "Giocatore %d" % player_number
+	_health.died.connect(_on_died)
 	if not is_multiplayer_authority():
 		_weapon.visible = false
 		_hud.visible = false
@@ -107,7 +122,6 @@ func _ready() -> void:
 	_hud.bind_weapon(_weapon)
 	CombatEvents.bus.enemy_killed.connect(_on_enemy_killed)
 	_health.damaged.connect(_on_damaged)
-	_health.died.connect(_on_died)
 	_hud.bind(_health)
 	_camera.make_current()
 	_capture_mouse()
@@ -144,6 +158,11 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not _health.is_alive():
+		_respawn_left -= delta
+	_fall_check_delay -= delta
+	if multiplayer.is_server():
+		_apply_host_rules()
 	if not is_multiplayer_authority():
 		_follow_remote_state(delta)
 		return
@@ -174,9 +193,19 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_handle_fire()
 	_handle_melee()
-	if global_position.y < kill_height:
-		_health.take_damage(_health.current)
 	_publish_state()
+
+
+## Sull'host, per ogni giocatore: chi cade fuori dal livello muore, chi è
+## morto da abbastanza tempo rinasce.
+func _apply_host_rules() -> void:
+	if _health.is_alive():
+		if global_position.y < kill_height and _fall_check_delay <= 0.0:
+			_health.take_damage(_health.current)
+	elif _respawn_left <= 0.0:
+		if NetSession.is_online():
+			_respawn.rpc()
+		_respawn()
 
 
 ## Scrive lo stato che MultiplayerSynchronizer invia agli altri partecipanti.
@@ -214,10 +243,7 @@ func _physics_process_dead(delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	move_and_slide()
-	_respawn_left -= delta
 	_hud.update_respawn_countdown(_respawn_left)
-	if _respawn_left <= 0.0:
-		_respawn()
 
 
 func _handle_melee() -> void:
@@ -227,12 +253,24 @@ func _handle_melee() -> void:
 		_melee.attack(_head.global_position, -_aim_basis().z, self)
 
 
-## Spinge via il giocatore con questa velocità (orizzontale + salto).
+## Spinge via il giocatore con questa velocità (orizzontale + salto). Gli
+## zombie la chiamano sull'host: se il giocatore è di un altro partecipante,
+## la spinta va a lui, che è chi lo muove.
 func apply_knockback(impulse: Vector3) -> void:
+	if not is_multiplayer_authority():
+		if multiplayer.is_server():
+			_receive_knockback.rpc_id(get_multiplayer_authority(), impulse)
+		return
 	if not _health.is_alive():
 		return
 	_push = Vector3(impulse.x, 0.0, impulse.z)
 	velocity.y = maxf(velocity.y, impulse.y)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_knockback(impulse: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		apply_knockback(impulse)
 
 
 func _on_damaged(_amount: float, source: Node, _hit_position: Vector3) -> void:
@@ -250,15 +288,45 @@ func _on_enemy_killed(_enemy: Node, killer: Node) -> void:
 
 func _on_died(_source: Node) -> void:
 	_respawn_left = respawn_time
+	_show_dead_body(true)
+	if not is_multiplayer_authority():
+		return
 	_weapon.visible = false
 	_best_time = maxf(_best_time, _alive_time)
 	_hud.show_death(_kills, _alive_time, _best_time)
 	_hud.update_respawn_countdown(_respawn_left)
 
 
-## Torna al punto di partenza con la vita piena.
-## In multiplayer sarà l'host a decidere quando e dove si rinasce.
+## Il corpo cade a terra da morto (lo vedono gli altri; per sé resta l'ombra)
+## e si rialza alla rinascita.
+func _show_dead_body(dead: bool) -> void:
+	# Disteso all'indietro, con i piedi dove stava in piedi.
+	var lying := Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0.0, 0.4, 0.0))
+	if _body_tween:
+		_body_tween.kill()
+	_body_tween = create_tween().set_parallel()
+	_body_tween.tween_property(_body_mesh, "transform", lying * _body_rest if dead else _body_rest, 0.35) 			.set_trans(Tween.TRANS_BOUNCE if dead else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_body_tween.tween_property(_visor, "transform", lying * _visor_rest if dead else _visor_rest, 0.35) 			.set_trans(Tween.TRANS_BOUNCE if dead else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_body_tween.tween_property(_name_tag, "position:y", _name_tag_height - 1.2 if dead else _name_tag_height, 0.35)
+	_name_tag.modulate.a = 0.5 if dead else 1.0
+
+
+## Torna al punto di partenza con la vita piena. La decide l'host: chiamata
+## direttamente lì, con una chiamata di rete sugli altri.
+@rpc("any_peer", "call_remote", "reliable")
 func _respawn() -> void:
+	if multiplayer.get_remote_sender_id() > 1:
+		return
+	# Sull'host riempie la vita; sugli altri non fa nulla e la vita arriva dall'host.
+	_health.reset()
+	_show_dead_body(false)
+	_fall_check_delay = 1.0
+	if not is_multiplayer_authority():
+		# Si mostra subito al punto di partenza, senza aspettare la sua posizione.
+		global_position = _spawn_transform.origin
+		sync_position = global_position
+		reset_physics_interpolation()
+		return
 	global_transform = _spawn_transform
 	velocity = Vector3.ZERO
 	_push = Vector3.ZERO
@@ -267,7 +335,6 @@ func _respawn() -> void:
 	_recoil = Vector2.ZERO
 	_death_blend = 0.0
 	reset_physics_interpolation()
-	_health.reset()
 	_weapon.visible = true
 	_kills = 0
 	_alive_time = 0.0

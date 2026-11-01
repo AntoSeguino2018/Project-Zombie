@@ -5,8 +5,10 @@ extends CharacterBody3D
 ##
 ## Ogni tipo di zombie estende questa classe e decide come attaccare
 ## (_wants_attack, _begin_attack, _update_attack, _interrupt_attack).
-## Predisposto per la rete: pensa e si muove solo dove ha l'autorità (l'host);
-## i client vedranno la sua posizione sincronizzata.
+## In rete pensa e si muove solo sull'host, che manda agli altri posizione,
+## direzione e posa del corpo (attacchi, volo, stordimento, caduta da morto):
+## lì lo zombie insegue morbidamente quello stato. Vita, lampi e morte
+## arrivano invece da HealthComponent.
 
 enum State { CHASE, ATTACK, STUNNED, LAUNCHED, DEAD }
 
@@ -47,6 +49,22 @@ const LAYER_PLAYERS := 2
 ## Secondi in cui il corpo resta a terra prima di sparire.
 @export var corpse_time := 1.0
 
+@export_group("Rete")
+## Volte al secondo in cui l'host manda lo stato dello zombie.
+@export var sync_rate := 30.0
+## Rapidità con cui uno zombie remoto raggiunge l'ultima posizione ricevuta.
+@export var remote_smoothing := 15.0
+## Rapidità per la posa: più alta, perché i segnali d'attacco (braccia alzate,
+## accucciata) devono arrivare interi e in tempo per schivare.
+@export var pose_smoothing := 40.0
+
+## Stato condiviso in rete: lo scrive l'host, gli altri lo inseguono.
+var sync_position := Vector3.ZERO
+var sync_yaw := 0.0
+## Posa del corpo (Visual) e angolo delle braccia, se ci sono.
+var sync_pose := Transform3D.IDENTITY
+var sync_arms := 0.0
+
 var _state := State.CHASE
 var _state_time := 0.0
 var _target: Node3D
@@ -64,6 +82,7 @@ var _flash := StandardMaterial3D.new()
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _shape: CollisionShape3D = $CollisionShape3D
 @onready var _visual: Node3D = $Visual
+@onready var _pose_arms: Node3D = get_node_or_null("Visual/Arms")
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
@@ -78,11 +97,14 @@ func _ready() -> void:
 
 	_health.damaged.connect(_on_damaged)
 	_health.died.connect(_on_died)
-	if not is_multiplayer_authority():
-		set_physics_process(false)
+	_publish_state()
+	_add_net_sync()
 
 
 func _physics_process(delta: float) -> void:
+	if not is_multiplayer_authority():
+		_follow_host_state(delta)
+		return
 	if not is_on_floor():
 		velocity.y -= _gravity * gravity_multiplier * delta
 	_slow_left -= delta
@@ -101,6 +123,48 @@ func _physics_process(delta: float) -> void:
 	var velocity_before_move := velocity
 	move_and_slide()
 	_after_move(velocity_before_move)
+	_publish_state()
+
+
+## Scrive lo stato che l'host manda agli altri partecipanti.
+func _publish_state() -> void:
+	sync_position = global_position
+	sync_yaw = rotation.y
+	sync_pose = _visual.transform
+	sync_arms = _pose_arms.rotation.x if _pose_arms else 0.0
+
+
+func _follow_host_state(delta: float) -> void:
+	var weight := 1.0 - exp(-remote_smoothing * delta)
+	if global_position.distance_to(sync_position) > 4.0:
+		global_position = sync_position
+		reset_physics_interpolation()
+	else:
+		global_position = global_position.lerp(sync_position, weight)
+	rotation.y = lerp_angle(rotation.y, sync_yaw, weight)
+	var pose_weight := 1.0 - exp(-pose_smoothing * delta)
+	_visual.transform = _visual.transform.interpolate_with(sync_pose, pose_weight)
+	if _pose_arms:
+		_pose_arms.rotation.x = lerpf(_pose_arms.rotation.x, sync_arms, pose_weight)
+
+
+## Sincronizzazione di rete, uguale per tutti i tipi di zombie: posizione e
+## direzione sempre, la posa solo quando cambia.
+func _add_net_sync() -> void:
+	var config := SceneReplicationConfig.new()
+	for property in [&"sync_position", &"sync_yaw", &"sync_pose", &"sync_arms"]:
+		var path := NodePath(".:" + property)
+		config.add_property(path)
+		config.property_set_spawn(path, true)
+		var changes_rarely: bool = property == &"sync_pose" or property == &"sync_arms"
+		config.property_set_replication_mode(path, SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE
+				if changes_rarely else SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
+	var net_sync := MultiplayerSynchronizer.new()
+	net_sync.name = "NetSync"
+	net_sync.replication_config = config
+	net_sync.replication_interval = 1.0 / sync_rate
+	net_sync.delta_interval = 1.0 / sync_rate
+	add_child(net_sync)
 
 
 func is_attacking() -> bool:
@@ -265,10 +329,22 @@ func _update_launched(velocity_before_move: Vector3) -> void:
 
 func _take_impact_damage(amount: float, source: Node, at: Vector3) -> void:
 	var dealt := _health.take_damage(amount, source, at)
-	if dealt > 0.0 and damage_number_scene:
+	if dealt <= 0.0:
+		return
+	# Il numero lo vede chi ha lanciato lo zombie, come per i suoi colpi.
+	var killed := not _health.is_alive()
+	if source and not source.is_multiplayer_authority():
+		_show_damage_number.rpc_id(source.get_multiplayer_authority(), dealt, at, killed)
+	else:
+		_show_damage_number(dealt, at, killed)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _show_damage_number(amount: float, at: Vector3, killed: bool) -> void:
+	if damage_number_scene:
 		var number: DamageNumber = damage_number_scene.instantiate()
 		get_tree().current_scene.add_child(number)
-		number.show_value(dealt, at, not _health.is_alive())
+		number.show_value(amount, at, killed)
 
 
 ## Il giocatore vivo più vicino, o null se non ce ne sono.
@@ -301,13 +377,18 @@ func _on_damaged(_amount: float, _source: Node, _hit_position: Vector3) -> void:
 	create_tween().tween_property(_flash, "albedo_color:a", 0.0, 0.12)
 
 
+## Arriva su tutti i partecipanti: ognuno conta le sue uccisioni.
 func _on_died(source: Node) -> void:
 	CombatEvents.bus.enemy_killed.emit(self, source)
-	_leave_attack()
-	_set_state(State.DEAD)
 	# Il corpo non blocca più nessuno e non si può colpire, ma cade ancora a terra.
 	set_deferred("collision_layer", 0)
 	set_deferred("collision_mask", LAYER_WORLD)
+	# La caduta e la sparizione le decide l'host (sugli altri arriva la posa,
+	# poi lo zombie viene tolto).
+	if not is_multiplayer_authority():
+		return
+	_leave_attack()
+	_set_state(State.DEAD)
 	# Cade all'indietro, resta a terra un attimo e poi sparisce.
 	var tween := _physics_tween()
 	tween.tween_property(_visual, "rotation", Vector3(deg_to_rad(90.0), 0.0, 0.0), 0.35) \
