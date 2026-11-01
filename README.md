@@ -1,7 +1,7 @@
 # Project Zombie
 
 FPS roguelike in prima persona, co-op online da 1 a 4 giocatori, grafica low-poly colorata.
-Motore: **Godot 4** (GDScript). Piano di lavoro: [ROADMAP.md](ROADMAP.md).
+Motore: **Godot 4** (GDScript). Piano di lavoro: [ROADMAP.md](ROADMAP.md). Riassunto per chi riprende il lavoro: [RECAP.md](RECAP.md).
 
 ## Struttura delle cartelle
 
@@ -26,6 +26,8 @@ game/            Il gioco, organizzato per funzionalità
 shared/          Codice e risorse comuni
   shaders/         shader dello stile grafico
   utils/
+tests/           Test automatici (bash tests/run_tests.sh; ignorati da Godot)
+tools/           Script di supporto, es. il generatore della mappa (ignorati da Godot)
 blender/         File sorgente .blend (ignorati da Godot)
 references/      Disegni 2D di riferimento (ignorati da Godot)
 builds/          Build esportate (non versionate)

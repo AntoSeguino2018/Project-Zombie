@@ -11,3 +11,6 @@
 *.blend2
 .DS_Store
 Thumbs.db
+
+# Log dei test automatici
+/tests/logs/
