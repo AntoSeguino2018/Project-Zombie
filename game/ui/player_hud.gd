@@ -1,7 +1,8 @@
 class_name PlayerHud
 extends CanvasLayer
 ## HUD del giocatore locale: mirino, barra della vita, munizioni e arma in mano,
-## uccisioni e tempo di sopravvivenza, cosa si può fare con E, direzione del
+## uccisioni e tempo di sopravvivenza, ondata in corso con gli zombie rimasti
+## (o i secondi alla prossima), cosa si può fare con E, direzione del
 ## danno, bordo rosso quando
 ## si subiscono danni (che resta acceso e pulsa con la vita bassa), comandi
 ## all'avvio e schermata di morte con il riepilogo e il conto alla rovescia.
@@ -19,6 +20,8 @@ var _health: HealthComponent
 var _flash := 0.0
 var _time := 0.0
 var _death_summary := ""
+var _waves: WaveDirector
+var _banner_tween: Tween
 
 @onready var crosshair: Crosshair = $Crosshair
 @onready var _health_bar: HealthBar = $HealthBar
@@ -30,6 +33,8 @@ var _death_summary := ""
 @onready var _stats_label: Label = $StatsLabel
 @onready var _controls_label: Label = $ControlsLabel
 @onready var _prompt: RichTextLabel = $InteractPrompt
+@onready var _wave_label: Label = $WaveLabel
+@onready var _wave_banner: Label = $WaveBanner
 
 
 func _ready() -> void:
@@ -37,6 +42,16 @@ func _ready() -> void:
 	tween.tween_interval(controls_time)
 	tween.tween_property(_controls_label, "modulate:a", 0.0, 1.0)
 	tween.tween_callback(_controls_label.hide)
+	# Il giocatore può nascere prima che il livello abbia finito di prepararsi.
+	_bind_waves.call_deferred()
+
+
+func _bind_waves() -> void:
+	_waves = WaveDirector.of(self)
+	if _waves == null:
+		return
+	_waves.wave_started.connect(func(wave: int): _show_banner("ONDATA %d" % wave))
+	_waves.wave_cleared.connect(func(wave: int): _show_banner("Ondata %d superata!" % wave))
 
 
 func bind(health: HealthComponent) -> void:
@@ -105,8 +120,29 @@ func _set_alive_widgets(alive: bool) -> void:
 	_weapon_label.visible = alive
 
 
+## Scritta grande che compare e svanisce, per l'inizio e la fine delle ondate.
+func _show_banner(text: String) -> void:
+	_wave_banner.text = text
+	if _banner_tween:
+		_banner_tween.kill()
+	_banner_tween = create_tween()
+	_banner_tween.tween_property(_wave_banner, "modulate:a", 1.0, 0.2)
+	_banner_tween.tween_interval(2.0)
+	_banner_tween.tween_property(_wave_banner, "modulate:a", 0.0, 0.6)
+
+
+func _update_wave_label() -> void:
+	if not is_instance_valid(_waves):
+		_wave_label.text = ""
+	elif _waves.phase == WaveDirector.Phase.ACTIVE:
+		_wave_label.text = "Ondata %d   ·   %d zombie" % [_waves.wave, _waves.remaining]
+	else:
+		_wave_label.text = "Ondata %d tra %d" % [_waves.wave + 1, ceili(_waves.seconds_to_next_wave())]
+
+
 func _process(delta: float) -> void:
 	_time += delta
+	_update_wave_label()
 	_flash = maxf(_flash - flash_fade * delta, 0.0)
 	var steady := 0.0
 	if _health and not _health.is_alive():

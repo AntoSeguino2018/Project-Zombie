@@ -74,7 +74,8 @@ Modello: ognuno muove il proprio giocatore (risposta immediata), l'host decide t
 ### Fase 3: Core loop roguelike (~60–100 ore)
 Scelte: una sola mappa molto grande, run a **ondate** con budget di pericolosità crescente, soldi personali (vedi [DESIGN.md](DESIGN.md)).
 - [x] 3.1 **Armi trovabili:** pistola di partenza, fucile a pompa e mitraglietta oltre a carabina e lanciagranate; tratti casuali che cambiano numeri e nome (rapida, pesante, precisa, caricatore esteso, ricarica lampo); trucchi che rendono l'arma *truccata* (rimbalzante, perforante, esplosiva, incendiaria, doppia canna); casse che si aprono con E e si riempiono dopo 30 s; due armi in mano e scambio con quella in mano, che resta a terra; tutto deciso dall'host *(le sbroccate arriveranno con le idee del gruppo)*
-- [ ] 3.2 **Ondate:** budget di pericolosità che sale, costo per tipo di zombie, composizione diversa a ogni ondata, spawn fuori vista; sostituisce gli spawner provvisori
+- [x] 3.2 **Ondate:** budget di pericolosità che sale e accelera (6, 10, 14, 20, 26… con un giocatore; +60% per ogni giocatore in più), costo per tipo (Camminatore 1, Scattista 2 dall'ondata 2, Bestione 5 dall'ondata 3), pesi che cambiano a caso a ogni ondata, zombie che escono uno alla volta da punti fuori vista e ad almeno 14 m, massimo di vivi insieme, pausa di 12 s tra un'ondata e l'altra; HUD con ondata, zombie rimasti e conto alla rovescia, scritte di inizio e fine; tutto deciso dall'host, anche per chi entra dopo. Sostituisce gli spawner provvisori
+  - Da regolare giocando: budget, pause, velocità di comparsa; per ora le ondate continuano all'infinito (la fine della run è il passo 3.7)
 - [ ] 3.3 Giocatore a terra → rianimazione da parte dei compagni; run persa se cadono tutti
 - [ ] 3.4 Soldi personali dagli zombie, macchinette del caffè (boost), casse a pagamento
 - [ ] 3.5 Oggetti passivi **impilabili**, definiti come dati (ogni oggetto è una risorsa con i suoi parametri)

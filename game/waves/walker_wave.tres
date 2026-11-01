@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WaveEnemy" format=3]
+
+[ext_resource type="Script" path="res://game/waves/wave_enemy.gd" id="1_wave"]
+[ext_resource type="PackedScene" path="res://game/enemies/walker.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_wave")
+scene = ExtResource("2_scene")
+cost = 1
+first_wave = 1
+weight = 3.0
