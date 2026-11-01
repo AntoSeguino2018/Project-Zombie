@@ -85,7 +85,9 @@ Scelte: una sola mappa molto grande, run a **ondate** con budget di pericolosit�
   - Da regolare giocando: valori, probabilità, quanti oggetti si trovano; più avanti oggetti rari e leggendari con effetti speciali (Fase 6)
   - Oggetti lasciati a terra spariscono dopo 2 minuti. Con F3 si vedono le statistiche delle prestazioni (FPS, fisica, disegno, zombie, detriti, cose a terra)
   - Corretto il crollo degli FPS nelle ondate alte: gli effetti degli oggetti rileggevano i file dal disco a ogni tick (6 tipi di oggetti = 7 FPS); ora si tengono in memoria. Segni dei colpi limitati a 40, senza ombre per gli effetti piccoli
-- [ ] 3.6 Mappa grande in greybox, con zone, casse e macchinette
+- [x] 3.6 **Mappa grande in greybox: il Complesso** (circa 112 × 76 m, a cielo aperto per ora): Atrio (partenza, tre macchinette), Aula studio gialla (file di tavoli, lavagna), Cortile (aiuole, muri distruttibili), Corridoio che collega tutto, Archivio (scaffali e corridoi stretti), Sala alta (soppalco a 3 m con due rampe), Magazzino (pile di casse, piattaforma a 2 m). 6 casse, 7 macchinette, 15 punti di comparsa sparsi, 5 strutture distruttibili, nomi delle zone sulle porte. Il menu fa giocare nel Complesso; il vecchio livello resta come "Poligono di prova" (da soli). La mappa si genera da uno script (pianta scritta in coordinate), così si ritocca in fretta
+  - Da regolare giocando: dimensioni, porte, coperture, dove stanno casse e macchinette; più avanti soffitti e luci al neon (Fase 5)
+  - Zombie: navigazione più larga nel Complesso (percorsi a 0,75 m dai muri) e anti-incastro (se non avanzano per mezzo secondo scivolano di lato): prima uno zombie poteva restare fermo per sempre sullo spigolo di una porta e l'ondata non finiva più. Prova automatica: 10 ondate di fila senza zombie bloccati
 - [ ] 3.7 Fine run e schermata con le statistiche
 - [ ] 3.8 Playtest della run completa
 

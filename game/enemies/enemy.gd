@@ -81,6 +81,10 @@ var _impact_source: Node
 var _impact_hits: Array[Node] = []
 var _hit_wall := false
 var _flash := StandardMaterial3D.new()
+## Anti-incastro: da quanto non avanza, e per quanto scivola ancora di lato.
+var _stuck_time := 0.0
+var _unstick_left := 0.0
+var _unstick_direction := Vector3.ZERO
 
 @onready var _health: HealthComponent = $Health
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -262,7 +266,7 @@ func _chase(delta: float) -> void:
 		_set_state(State.ATTACK)
 		_begin_attack()
 		return
-	var direction := _chase_direction(delta)
+	var direction := _unstick(_chase_direction(delta), delta)
 	var speed := move_speed * (hit_slow_factor if _slow_left > 0.0 else 1.0)
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
@@ -276,6 +280,36 @@ func _end_attack() -> void:
 func _leave_attack() -> void:
 	if _state == State.ATTACK:
 		_interrupt_attack()
+
+
+## Se inseguendo resta fermo per mezzo secondo (per esempio contro lo spigolo
+## di una porta), scivola di lato lungo l'ostacolo per un attimo e poi riprende
+## il percorso. Restituisce la direzione da seguire in questo tick.
+func _unstick(direction: Vector3, delta: float) -> Vector3:
+	if _unstick_left > 0.0:
+		_unstick_left -= delta
+		return _unstick_direction
+	var moving := _flat(get_real_velocity()).length()
+	if direction.is_zero_approx() or _slow_left > 0.0 or moving > move_speed * 0.25:
+		_stuck_time = 0.0
+		return direction
+	_stuck_time += delta
+	if _stuck_time < 0.5:
+		return direction
+	_stuck_time = 0.0
+	_unstick_left = 0.6
+	var side := direction.cross(Vector3.UP).normalized()
+	var sign := 1.0 if randf() < 0.5 else -1.0
+	if get_slide_collision_count() > 0:
+		# Verso il lato in cui la direzione voluta scivola lungo l'ostacolo.
+		var normal := _flat(get_slide_collision(0).get_normal())
+		var slid := direction.slide(normal) if not normal.is_zero_approx() else Vector3.ZERO
+		if slid.length() > 0.05:
+			sign = signf(side.dot(slid))
+		_unstick_direction = (side * sign + normal * 0.5).normalized()
+	else:
+		_unstick_direction = side * sign
+	return _unstick_direction
 
 
 ## Direzione orizzontale verso il prossimo punto del percorso (zero se non c'è).

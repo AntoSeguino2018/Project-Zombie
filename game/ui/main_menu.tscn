@@ -57,6 +57,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Gioca da solo"
 
+[node name="Training" type="Button" parent="Center/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Poligono di prova (da solo)"
+
 [node name="Host" type="Button" parent="Center/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
