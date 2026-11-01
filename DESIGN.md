@@ -113,6 +113,8 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 ## Boost: le macchinette
 ✅ Le macchinette del caffè danno i boost (nascono dai coffee break).
 
+✅ Prime tre fatte (passo 3.4): **Espresso** (cadenza), **Caffè doppio** (ricarica), **Merendina** (cura). Si pagano in € con i soldi personali; a volte si mangiano i soldi, a volte danno una dose doppia.
+
 💡 Proposta:
 - Sparse nei livelli, si usano con la valuta raccolta.
 - Ogni bevanda o snack dà un effetto a tempo o permanente per la run. Esempi:

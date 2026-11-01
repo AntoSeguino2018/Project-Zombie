@@ -57,6 +57,9 @@ const MAX_WEAPONS := 2
 var data: WeaponData
 ## Punto da cui partono scia e proiettili (la bocca dell'arma in mano).
 var muzzle: Node3D
+## Moltiplicatori dei boost delle macchinette (li imposta il giocatore).
+var fire_rate_multiplier := 1.0
+var reload_speed_multiplier := 1.0
 
 var _slot := -1
 ## Colpi rimasti nel caricatore di ogni arma del loadout.
@@ -224,7 +227,7 @@ func is_reloading() -> bool:
 func reload_progress() -> float:
 	if not is_reloading() or data.reload_time <= 0.0:
 		return 0.0
-	return 1.0 - _reload_left / data.reload_time
+	return 1.0 - _reload_left / (data.reload_time / reload_speed_multiplier)
 
 
 ## Inizia a ricaricare, se serve e se non si sta già ricaricando.
@@ -233,13 +236,13 @@ func start_reload() -> void:
 		return
 	if ammo() >= data.magazine_size:
 		return
-	_reload_left = maxf(data.reload_time, 0.01)
+	_reload_left = maxf(data.reload_time / reload_speed_multiplier, 0.01)
 
 
 ## Spara un colpo da origin verso direction. exclude: corpi da ignorare (chi spara).
 ## In rete lo chiama solo chi controlla il giocatore.
 func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void:
-	_cooldown += 1.0 / data.fire_rate
+	_cooldown += 1.0 / (data.fire_rate * fire_rate_multiplier)
 	_kick = 1.0
 	if data.magazine_size > 0 and _slot < _ammo.size():
 		_ammo[_slot] = maxi(_ammo[_slot] - 1, 0)

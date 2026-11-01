@@ -48,6 +48,8 @@ const LAYER_PLAYERS := 2
 @export_group("Morte")
 ## Secondi in cui il corpo resta a terra prima di sparire.
 @export var corpse_time := 1.0
+## Soldi che riceve chi lo uccide.
+@export var bounty := 10
 
 @export_group("Rete")
 ## Volte al secondo in cui l'host manda lo stato dello zombie.

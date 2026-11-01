@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Boost" format=3]
+
+[ext_resource type="Script" path="res://game/boosts/boost.gd" id="1_boost"]
+
+[resource]
+script = ExtResource("1_boost")
+display_name = "Espresso"
+description = "cadenza di fuoco +30% per 60 s"
+price = 40
+duration = 60.0
+color = Color(0.62, 0.3, 0.16, 1)
+fire_rate_multiplier = 1.3

@@ -64,6 +64,8 @@ signal life_changed(life: Life)
 @export var revive_distance := 2.5
 ## Vita con cui ci si rialza dopo essere stati rianimati, in frazione del massimo.
 @export_range(0.05, 1.0) var revive_health_fraction := 0.4
+## Soldi a chi finisce di rianimarci.
+@export var revive_reward := 20
 ## Velocità strisciando a terra, in m/s.
 @export var crawl_speed := 1.5
 ## Sotto questa quota si muore: si è caduti fuori dal livello.
@@ -101,8 +103,9 @@ var _fell_out := false
 var _revive_candidate: FpsController
 ## Compagno che stiamo rianimando tenendo premuto E (lato host e lato nostro).
 var _reviving: FpsController
-## Sull'host: ultimo tick di fisica in cui qualcuno ci ha rianimato.
+## Sull'host: ultimo tick di fisica in cui qualcuno ci ha rianimato, e chi.
 var _revived_frame := -10
+var _last_reviver: FpsController
 var _progress_send_left := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si va giù.
 var _death_blend := 0.0
@@ -125,6 +128,7 @@ var _run_time := 0.0
 @onready var _weapon: Weapon = $Camera3D/Weapon
 @onready var _melee: MeleeAttack = $Camera3D/Melee
 @onready var _health: HealthComponent = $Health
+@onready var _inventory: RunInventory = $Inventory
 @onready var _hud: PlayerHud = $Hud
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
@@ -164,6 +168,7 @@ func _ready() -> void:
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_hud.bind_weapon(_weapon)
+	_hud.bind_inventory(_inventory)
 	CombatEvents.bus.enemy_killed.connect(_on_enemy_killed)
 	_health.damaged.connect(_on_damaged)
 	_hud.bind(_health)
@@ -219,6 +224,8 @@ func _physics_process(delta: float) -> void:
 		_publish_state()
 		return
 	rotation.y = _yaw
+	_weapon.fire_rate_multiplier = _inventory.fire_rate_multiplier()
+	_weapon.reload_speed_multiplier = _inventory.reload_speed_multiplier()
 
 	if is_on_floor():
 		if Input.is_action_just_pressed("jump"):
@@ -248,6 +255,11 @@ func weapon() -> Weapon:
 	return _weapon
 
 
+## Soldi e boost della run.
+func inventory() -> RunInventory:
+	return _inventory
+
+
 ## Vero se è in piedi (vivo e non a terra).
 func is_standing() -> bool:
 	return life == Life.ALIVE
@@ -263,7 +275,7 @@ func _apply_host_rules(delta: float) -> void:
 				_fell_out = true
 				_health.take_damage(_health.current)
 			elif _can_revive(_reviving):
-				_reviving._host_add_revive(delta / _reviving.revive_time)
+				_reviving._host_add_revive(delta / _reviving.revive_time, self)
 		Life.DOWNED:
 			var being_revived := Engine.get_physics_frames() - _revived_frame <= 1
 			if not being_revived and revive_progress > 0.0:
@@ -283,8 +295,9 @@ func _can_revive(target: FpsController) -> bool:
 
 
 ## Sull'host: un compagno ci sta rianimando; amount è la frazione fatta in questo tick.
-func _host_add_revive(amount: float) -> void:
+func _host_add_revive(amount: float, reviver: FpsController) -> void:
 	_revived_frame = Engine.get_physics_frames()
+	_last_reviver = reviver
 	_set_revive_progress(minf(revive_progress + amount, 1.0))
 
 
@@ -310,6 +323,10 @@ func host_revive() -> void:
 		return
 	_health.restore(_health.max_health * revive_health_fraction)
 	_host_set_life(Life.ALIVE)
+	# Chi ha appena finito di rianimarci viene ricompensato.
+	if is_instance_valid(_last_reviver) and Engine.get_physics_frames() - _revived_frame <= 1:
+		_last_reviver.inventory().host_add_money(revive_reward)
+	_last_reviver = null
 
 
 ## Sull'host: fa rinascere un giocatore morto in at, con la vita piena.
@@ -326,6 +343,7 @@ func host_restart() -> void:
 	_health.reset()
 	_host_set_life(Life.ALIVE)
 	_weapon.host_set_loadout([["pistol"]], 0)
+	_inventory.host_reset()
 	_teleport(_spawn_transform.origin)
 	_reset_run_stats()
 	if NetSession.is_online():

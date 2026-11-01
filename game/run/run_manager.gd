@@ -2,8 +2,10 @@ class_name RunManager
 extends Node
 ## La run in corso. È persa quando nessun giocatore è più in piedi (tutti a
 ## terra o morti): si mostra il riepilogo e dopo qualche secondo si riparte da
-## capo (ondata 1, solo la pistola, casse chiuse). A ogni ondata superata chi è
-## a terra si rialza e chi è morto rinasce vicino a un compagno.
+## capo (ondata 1, solo la pistola, niente soldi, casse chiuse). A ogni ondata
+## superata chi è a terra si rialza, chi è morto rinasce vicino a un compagno
+## e tutti ricevono un premio in soldi. Chi uccide uno zombie ne prende la
+## taglia (Enemy.bounty).
 ##
 ## Decide tutto l'host; gli altri ricevono quando la run è persa e quando
 ## riparte (anche chi entra mentre il riepilogo è a schermo).
@@ -13,6 +15,9 @@ signal run_restarted
 
 ## Secondi di riepilogo prima di ripartire.
 @export var restart_delay := 8.0
+## Premio a ogni giocatore per un'ondata superata: base + per_wave × ondata.
+@export var wave_reward_base := 25
+@export var wave_reward_per_wave := 5
 
 ## Ondata più alta raggiunta in questa sessione di gioco.
 static var best_wave := 0
@@ -30,6 +35,7 @@ func _ready() -> void:
 	if not multiplayer.is_server():
 		return
 	_connect_waves.call_deferred()
+	CombatEvents.bus.enemy_killed.connect(_on_enemy_killed)
 	if NetSession.is_online():
 		multiplayer.peer_connected.connect(func(id: int):
 			if lost:
@@ -55,7 +61,24 @@ func restart_seconds_left() -> float:
 func _connect_waves() -> void:
 	var waves := WaveDirector.of(self)
 	if waves:
-		waves.wave_cleared.connect(func(_wave: int): _bring_back_fallen())
+		waves.wave_cleared.connect(_on_wave_cleared)
+
+
+func _exit_tree() -> void:
+	if CombatEvents.bus.enemy_killed.is_connected(_on_enemy_killed):
+		CombatEvents.bus.enemy_killed.disconnect(_on_enemy_killed)
+
+
+## Sull'host: la taglia dello zombie va a chi l'ha ucciso.
+func _on_enemy_killed(enemy: Node, killer: Node) -> void:
+	if killer is FpsController and enemy is Enemy and not lost:
+		killer.inventory().host_add_money(enemy.bounty)
+
+
+func _on_wave_cleared(wave: int) -> void:
+	_bring_back_fallen()
+	for player in _players():
+		player.inventory().host_add_money(wave_reward_base + wave_reward_per_wave * wave)
 
 
 func _physics_process(delta: float) -> void:

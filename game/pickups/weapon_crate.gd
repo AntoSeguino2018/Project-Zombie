@@ -1,13 +1,15 @@
 class_name WeaponCrate
 extends StaticBody3D
-## Cassa delle armi: guardandola e premendo E si apre e ne esce un'arma a caso
-## (vedi WeaponCatalog.roll), che resta a fluttuare sopra finché qualcuno non
-## la prende. Dopo refill_time secondi, se l'arma è stata presa, si richiude
-## piena. Per ora è gratis: dal passo 3.4 costerà soldi.
+## Cassa delle armi: guardandola e premendo E la si apre pagando price e ne
+## esce un'arma a caso (vedi WeaponCatalog.roll), che resta a fluttuare sopra
+## finché qualcuno non la prende. Dopo refill_time secondi, se l'arma è stata
+## presa, si richiude piena.
 ##
 ## In rete apertura, contenuto e richiusura li decide l'host; gli altri vedono
 ## il coperchio aprirsi e l'arma comparire (PickupReplicator).
 
+## Soldi per aprirla (li paga chi la apre).
+@export var price := 100
 ## Secondi dall'apertura prima che si possa riaprire.
 @export var refill_time := 30.0
 ## Altezza dell'arma che esce, sopra la base della cassa.
@@ -42,13 +44,19 @@ func _physics_process(delta: float) -> void:
 
 
 ## Testo da mostrare quando il giocatore la guarda; vuoto = niente da fare.
-func interaction_text(_player: FpsController) -> String:
-	return "" if is_open else "Apri la cassa"
-
-
-## Sull'host: il giocatore apre la cassa.
-func interact(_player: FpsController, _slot: int) -> void:
+func interaction_text(player: FpsController) -> String:
 	if is_open:
+		return ""
+	var text := "Apri la cassa  [color=#ffd24a]%d €[/color]" % price
+	var money := player.inventory().money
+	if money < price:
+		text += "  [color=#ff8877](hai %d €)[/color]" % money
+	return text
+
+
+## Sull'host: il giocatore apre la cassa, se ha abbastanza soldi.
+func interact(player: FpsController, _slot: int) -> void:
+	if is_open or not player.inventory().host_spend(price):
 		return
 	_set_open(true)
 	_refill_left = refill_time

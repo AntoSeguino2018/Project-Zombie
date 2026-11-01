@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://game/ui/health_bar.gd" id="10_health_bar"]
 [ext_resource type="Shader" path="res://shared/shaders/damage_vignette.gdshader" id="11_vignette"]
 [ext_resource type="Script" path="res://game/player/melee_attack.gd" id="12_melee"]
+[ext_resource type="Script" path="res://game/run/run_inventory.gd" id="17_inventory"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -107,6 +108,9 @@ replication_config = SubResource("SceneReplicationConfig_net")
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("8_health")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("17_inventory")
 
 [node name="Head" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
@@ -300,6 +304,78 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_revive_fill")
 max_value = 1.0
 step = 0.0
 show_percentage = false
+
+[node name="MoneyLabel" type="Label" parent="Hud"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -332.0
+offset_top = -190.0
+offset_right = -32.0
+offset_bottom = -146.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.82, 0.29, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "0 €"
+horizontal_alignment = 2
+
+[node name="MoneyGain" type="Label" parent="Hud"]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -332.0
+offset_top = -226.0
+offset_right = -32.0
+offset_bottom = -194.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+
+[node name="BoostsLabel" type="RichTextLabel" parent="Hud"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -170.0
+offset_right = 432.0
+offset_bottom = -76.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/normal_font_size = 22
+bbcode_enabled = true
+scroll_active = false
+vertical_alignment = 2
+
+[node name="NoticeLabel" type="Label" parent="Hud"]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -320.0
+offset_right = 400.0
+offset_bottom = -282.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
 
 [node name="ControlsLabel" type="Label" parent="Hud"]
 offset_left = 32.0

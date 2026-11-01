@@ -2,7 +2,9 @@ class_name PlayerHud
 extends CanvasLayer
 ## HUD del giocatore locale: mirino, barra della vita, munizioni e arma in mano,
 ## uccisioni e tempo della run, ondata in corso con gli zombie rimasti (o i
-## secondi alla prossima), cosa si può fare con E, barra della rianimazione,
+## secondi alla prossima), soldi (con i guadagni che compaiono e svaniscono),
+## boost attivi con il tempo rimasto, avvisi (es. soldi che non bastano),
+## cosa si può fare con E, barra della rianimazione,
 ## direzione del danno, bordo rosso quando si subiscono danni (che resta acceso
 ## e pulsa con la vita bassa), comandi all'avvio, schermate di giocatore a
 ## terra, morto e di run persa con il riepilogo.
@@ -21,6 +23,9 @@ var _flash := 0.0
 var _time := 0.0
 var _waves: WaveDirector
 var _run: RunManager
+var _inventory: RunInventory
+var _gain_tween: Tween
+var _notice_tween: Tween
 var _banner_tween: Tween
 
 @onready var crosshair: Crosshair = $Crosshair
@@ -36,6 +41,10 @@ var _banner_tween: Tween
 @onready var _wave_label: Label = $WaveLabel
 @onready var _wave_banner: Label = $WaveBanner
 @onready var _revive_bar: ProgressBar = $ReviveBar
+@onready var _money_label: Label = $MoneyLabel
+@onready var _money_gain: Label = $MoneyGain
+@onready var _boosts_label: RichTextLabel = $BoostsLabel
+@onready var _notice_label: Label = $NoticeLabel
 
 
 func _ready() -> void:
@@ -69,6 +78,53 @@ func bind_weapon(weapon: Weapon) -> void:
 	_ammo_display.bind(weapon)
 	weapon.equipped.connect(_show_weapon_name)
 	_show_weapon_name(weapon.data)
+
+
+func bind_inventory(inventory: RunInventory) -> void:
+	_inventory = inventory
+	inventory.money_changed.connect(_on_money_changed)
+	inventory.notice.connect(show_notice)
+	_money_label.text = "%d €" % inventory.money
+
+
+func _on_money_changed(money: int, delta: int) -> void:
+	_money_label.text = "%d €" % money
+	if delta == 0:
+		return
+	_money_gain.text = ("+%d €" if delta > 0 else "−%d €") % absi(delta)
+	_money_gain.add_theme_color_override("font_color",
+			Color(1.0, 0.82, 0.29) if delta > 0 else Color(1.0, 0.45, 0.4))
+	if _gain_tween:
+		_gain_tween.kill()
+	_money_gain.modulate.a = 1.0
+	_gain_tween = create_tween()
+	_gain_tween.tween_interval(0.8)
+	_gain_tween.tween_property(_money_gain, "modulate:a", 0.0, 0.5)
+
+
+## Messaggio breve sotto il centro dello schermo, che svanisce da solo.
+func show_notice(text: String) -> void:
+	_notice_label.text = text
+	if _notice_tween:
+		_notice_tween.kill()
+	_notice_label.modulate.a = 1.0
+	_notice_tween = create_tween()
+	_notice_tween.tween_interval(2.0)
+	_notice_tween.tween_property(_notice_label, "modulate:a", 0.0, 0.6)
+
+
+## Boost attivi, uno per riga, con il tempo rimasto.
+func _update_boosts() -> void:
+	if _inventory == null or _inventory.boosts.is_empty():
+		_boosts_label.text = ""
+		return
+	var lines := PackedStringArray()
+	for path in _inventory.boosts:
+		var boost: Boost = load(path)
+		lines.append("[color=#%s]%s[/color]  %s" % [boost.color.lightened(0.35).to_html(false),
+				boost.display_name, format_time(ceilf(_inventory.boosts[path]))])
+	_boosts_label.text = "
+".join(lines)
 
 
 ## Nome dell'arma in mano, del colore della sua rarità.
@@ -203,6 +259,7 @@ func _process(delta: float) -> void:
 	_time += delta
 	_update_wave_label()
 	_update_run_lost()
+	_update_boosts()
 	_flash = maxf(_flash - flash_fade * delta, 0.0)
 	var steady := 0.0
 	if _health and not _health.is_alive():

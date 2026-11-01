@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/pickups/vending_machine.gd" id="1_machine"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_machine"]
+size = Vector3(0.9, 1.9, 0.75)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.9, 1.9, 0.75)
+
+[sub_resource type="BoxMesh" id="BoxMesh_panel"]
+size = Vector3(0.62, 0.8, 0.03)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dark"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_tray"]
+material = SubResource("StandardMaterial3D_dark")
+size = Vector3(0.5, 0.18, 0.03)
+
+[sub_resource type="BoxMesh" id="BoxMesh_slot"]
+material = SubResource("StandardMaterial3D_dark")
+size = Vector3(0.12, 0.2, 0.03)
+
+[node name="VendingMachine" type="StaticBody3D"]
+collision_layer = 17
+collision_mask = 0
+script = ExtResource("1_machine")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+shape = SubResource("BoxShape3D_machine")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="Panel" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.06, 0.25, 0.38)
+mesh = SubResource("BoxMesh_panel")
+
+[node name="Tray" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.06, -0.6, 0.38)
+mesh = SubResource("BoxMesh_tray")
+
+[node name="CoinSlot" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 0.25, 0.38)
+mesh = SubResource("BoxMesh_slot")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0.8)
+light_energy = 0.8
+omni_range = 3.0
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.25, 0)
+billboard = 1
+text = "Prodotto"
+font_size = 36
+outline_size = 10
+visibility_range_end = 9.0
