@@ -26,6 +26,7 @@ var _lid_tween: Tween
 
 
 func _ready() -> void:
+	add_to_group("weapon_crates")
 	_rng.randomize()
 	if multiplayer.is_server() and NetSession.is_online():
 		# Chi entra a partita iniziata vede le casse già aperte.
@@ -56,6 +57,13 @@ func interact(_player: FpsController, _slot: int) -> void:
 	var replicator := PickupReplicator.of(self)
 	var pickup: WeaponPickup = replicator.spawn_pickup(spec, at) if replicator else null
 	_pickup_id = pickup.get_instance_id() if pickup else 0
+
+
+## Sull'host, a inizio run: di nuovo chiusa e piena.
+func host_reset() -> void:
+	_pickup_id = 0
+	if is_open:
+		_set_open(false)
 
 
 func _set_open(open: bool) -> void:

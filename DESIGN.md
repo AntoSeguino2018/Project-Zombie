@@ -170,7 +170,7 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 💡 Ancora da decidere:
 - Cosa succede tra un'ondata e l'altra (pausa per spendere, macchinette, riparazioni).
 - Come si vince: un numero fisso di ondate, un'ondata finale con boss, oppure si resiste il più possibile.
-- Chi muore viene rianimato dai compagni. Se muoiono tutti, si torna alla lobby con qualche sblocco.
+- ✅ Chi finisce la vita resta **a terra** e i compagni possono rianimarlo; chi non viene rianimato muore e rinasce a fine ondata. Se nessuno resta in piedi la run è persa (per ora si riparte subito; più avanti si tornerà alla lobby con qualche sblocco).
 - Più avanti: più mappe, o zone del Complesso collegate.
 
 ---

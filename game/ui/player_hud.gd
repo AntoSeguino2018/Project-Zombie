@@ -1,11 +1,11 @@
 class_name PlayerHud
 extends CanvasLayer
 ## HUD del giocatore locale: mirino, barra della vita, munizioni e arma in mano,
-## uccisioni e tempo di sopravvivenza, ondata in corso con gli zombie rimasti
-## (o i secondi alla prossima), cosa si può fare con E, direzione del
-## danno, bordo rosso quando
-## si subiscono danni (che resta acceso e pulsa con la vita bassa), comandi
-## all'avvio e schermata di morte con il riepilogo e il conto alla rovescia.
+## uccisioni e tempo della run, ondata in corso con gli zombie rimasti (o i
+## secondi alla prossima), cosa si può fare con E, barra della rianimazione,
+## direzione del danno, bordo rosso quando si subiscono danni (che resta acceso
+## e pulsa con la vita bassa), comandi all'avvio, schermate di giocatore a
+## terra, morto e di run persa con il riepilogo.
 
 ## Sotto questa frazione di vita il bordo rosso resta acceso.
 @export_range(0.0, 1.0) var low_health_fraction := 0.3
@@ -19,8 +19,8 @@ extends CanvasLayer
 var _health: HealthComponent
 var _flash := 0.0
 var _time := 0.0
-var _death_summary := ""
 var _waves: WaveDirector
+var _run: RunManager
 var _banner_tween: Tween
 
 @onready var crosshair: Crosshair = $Crosshair
@@ -35,6 +35,7 @@ var _banner_tween: Tween
 @onready var _prompt: RichTextLabel = $InteractPrompt
 @onready var _wave_label: Label = $WaveLabel
 @onready var _wave_banner: Label = $WaveBanner
+@onready var _revive_bar: ProgressBar = $ReviveBar
 
 
 func _ready() -> void:
@@ -47,6 +48,9 @@ func _ready() -> void:
 
 
 func _bind_waves() -> void:
+	_run = RunManager.of(self)
+	if _run:
+		_run.run_restarted.connect(hide_death)
 	_waves = WaveDirector.of(self)
 	if _waves == null:
 		return
@@ -80,9 +84,9 @@ func show_prompt(text: String) -> void:
 		_prompt.text = "[center][color=#ffd24a]E[/color]  %s[/center]" % text
 
 
-## Uccisioni e tempo di sopravvivenza della vita in corso, in alto a destra.
-func update_stats(kills: int, seconds_alive: float) -> void:
-	_stats_label.text = "%d uccisioni   %s" % [kills, format_time(seconds_alive)]
+## Uccisioni e tempo della run in corso, in alto a destra.
+func update_stats(kills: int, seconds: float) -> void:
+	_stats_label.text = "%d uccisioni   %s" % [kills, format_time(seconds)]
 
 
 ## Segna un colpo arrivato dal punto from (in coordinate del mondo).
@@ -90,17 +94,71 @@ func show_damage_from(from: Vector3) -> void:
 	_damage_indicator.show_hit(from)
 
 
-## Schermata di morte con il riepilogo della vita appena finita.
-func show_death(kills: int, seconds_alive: float, best_seconds: float) -> void:
+func show_downed() -> void:
 	_death_label.visible = true
-	_death_summary = "Sopravvissuto %s  ·  %d uccisioni\nRecord %s" % [
-			format_time(seconds_alive), kills, format_time(best_seconds)]
 	_set_alive_widgets(false)
 
 
-func update_respawn_countdown(seconds_left: float) -> void:
-	_death_label.text = "SEI MORTO\n%s\n\nRinasci tra %d" % [
-			_death_summary, maxi(ceili(seconds_left), 1)]
+## A terra: secondi prima di morire e, se qualcuno ci sta rianimando, a che punto è.
+func update_bleed_out(seconds_left: float, revive_progress: float) -> void:
+	if _run_is_lost():
+		return
+	if revive_progress > 0.0:
+		_death_label.text = "A TERRA
+Ti stanno rianimando..."
+	else:
+		_death_label.text = "A TERRA
+Un compagno può rianimarti
+
+Muori tra %d" % maxi(ceili(seconds_left), 1)
+	_show_revive_bar(revive_progress)
+
+
+func show_dead() -> void:
+	_death_label.visible = true
+	_set_alive_widgets(false)
+	_show_revive_bar(0.0)
+	if not _run_is_lost():
+		_death_label.text = "SEI MORTO
+Rinasci alla fine dell'ondata"
+
+
+## Barra di chi sta rianimando un compagno.
+func update_revive(player: FpsController) -> void:
+	if player.life != FpsController.Life.ALIVE:
+		return
+	var target := player.reviving()
+	if is_instance_valid(target) and target.life == FpsController.Life.DOWNED:
+		show_prompt("Rianimando %s..." % target.display_name())
+		_show_revive_bar(target.revive_progress)
+	else:
+		_show_revive_bar(0.0)
+
+
+func _show_revive_bar(progress: float) -> void:
+	_revive_bar.visible = progress > 0.0
+	_revive_bar.value = progress
+
+
+func _run_is_lost() -> bool:
+	return is_instance_valid(_run) and _run.lost
+
+
+func _update_run_lost() -> void:
+	if not _run_is_lost():
+		return
+	_death_label.visible = true
+	_set_alive_widgets(false)
+	_show_revive_bar(0.0)
+	var player := get_parent() as FpsController
+	var reached := "Ondata %d" % _run.lost_wave if _run.lost_wave > 0 else "Prima della prima ondata"
+	var record := "Record: ondata %d" % RunManager.best_wave if RunManager.best_wave > 0 else ""
+	_death_label.text = "RUN PERSA
+%s  ·  %d uccisioni
+%s
+
+Si riparte tra %d" % [
+			reached, player.kills() if player else 0, record, maxi(ceili(_run.restart_seconds_left()), 1)]
 
 
 static func format_time(seconds: float) -> String:
@@ -110,6 +168,7 @@ static func format_time(seconds: float) -> String:
 
 func hide_death() -> void:
 	_death_label.visible = false
+	_show_revive_bar(0.0)
 	_set_alive_widgets(true)
 
 
@@ -143,6 +202,7 @@ func _update_wave_label() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	_update_wave_label()
+	_update_run_lost()
 	_flash = maxf(_flash - flash_fade * delta, 0.0)
 	var steady := 0.0
 	if _health and not _health.is_alive():

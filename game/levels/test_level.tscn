@@ -20,6 +20,7 @@
 [ext_resource type="Resource" path="res://game/waves/walker_wave.tres" id="19_walker_wave"]
 [ext_resource type="Resource" path="res://game/waves/runner_wave.tres" id="20_runner_wave"]
 [ext_resource type="Resource" path="res://game/waves/brute_wave.tres" id="21_brute_wave"]
+[ext_resource type="Script" path="res://game/run/run_manager.gd" id="22_run"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -250,6 +251,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -32)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3, -17)
 
 [node name="Enemies" type="Node3D" parent="."]
+
+[node name="Run" type="Node" parent="."]
+script = ExtResource("22_run")
 
 [node name="Waves" type="Node3D" parent="."]
 script = ExtResource("18_waves")

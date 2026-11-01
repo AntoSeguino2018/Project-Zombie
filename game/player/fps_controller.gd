@@ -8,14 +8,23 @@ extends CharacterBody3D
 ## modo morbido. Da soli il giocatore è sempre quello locale.
 ## Guardando un oggetto interagibile (casse, armi a terra) l'HUD mostra cosa
 ## si può fare con E; l'azione la esegue l'host, che controlla la distanza.
-## Vita, morte, caduta fuori dal livello e rinascita le decide l'host; chi
-## controlla il giocatore si limita a mostrarle (HUD, visuale a terra) e gli
-## altri vedono il corpo cadere a terra.
+## Vita, caduta fuori dal livello, rianimazione e rinascita le decide l'host;
+## chi controlla il giocatore si limita a mostrarle (HUD, visuale a terra) e
+## gli altri vedono il corpo cadere a terra.
+## Finita la vita non si muore subito: si resta A TERRA, si striscia piano e un
+## compagno vivo può rianimarci tenendo premuto E vicino a noi. Se nessuno lo
+## fa in tempo si MUORE e si rinasce alla fine dell'ondata (vedi RunManager).
 ## La camera è top_level e segue la testa interpolata, così il movimento resta
 ## fluido anche su monitor a più di 60 Hz, mentre la rotazione del mouse è immediata.
 
+## Vivo, a terra (si può rianimare) o morto (si aspetta la fine dell'ondata).
+enum Life { ALIVE, DOWNED, DEAD }
+
 const LAYER_WORLD := 1
 const LAYER_INTERACTABLE := 16
+
+## Lo stato di vita è cambiato (su tutti i partecipanti).
+signal life_changed(life: Life)
 
 @export_group("Movimento")
 ## Velocità camminando, in m/s.
@@ -47,15 +56,28 @@ const LAYER_INTERACTABLE := 16
 		Color(0.55, 0.85, 0.35), Color(0.9, 0.4, 0.75)]
 
 @export_group("Vita")
-## Secondi da morto prima di rinascere al punto di partenza.
-@export var respawn_time := 3.0
+## Secondi a terra prima di morire, se nessuno ci rianima.
+@export var bleed_out_time := 30.0
+## Secondi tenendo premuto E per rianimare un compagno.
+@export var revive_time := 3.0
+## Distanza massima da cui si rianima un compagno, in metri.
+@export var revive_distance := 2.5
+## Vita con cui ci si rialza dopo essere stati rianimati, in frazione del massimo.
+@export_range(0.05, 1.0) var revive_health_fraction := 0.4
+## Velocità strisciando a terra, in m/s.
+@export var crawl_speed := 1.5
 ## Sotto questa quota si muore: si è caduti fuori dal livello.
 @export var kill_height := -30.0
-## Di quanto scende la visuale da morti, in metri.
+## Di quanto scende la visuale da morti, in metri (a terra un po' meno).
 @export var death_camera_drop := 1.2
 
 ## Numero del giocatore nella partita (1-4): decide colore e nome.
 var player_number := 1
+var life := Life.ALIVE
+## Da 0 a 1: quanto manca a rialzarsi mentre qualcuno ci rianima (deciso dall'host).
+var revive_progress := 0.0
+## Secondi a terra che restano prima di morire.
+var bleed_left := 0.0
 ## Stato condiviso in rete: lo scrive chi controlla il giocatore, gli altri lo inseguono.
 var sync_position := Vector3.ZERO
 var sync_yaw := 0.0
@@ -69,11 +91,20 @@ var _recoil := Vector2.ZERO
 ## Spinta ricevuta (es. carica del Bestione): si somma al movimento e si esaurisce.
 var _push := Vector3.ZERO
 var _spawn_transform: Transform3D
-var _respawn_left := 0.0
 ## Dopo la rinascita l'host aspetta un po' prima di controllare le cadute: la
 ## nuova posizione di un giocatore remoto arriva con qualche istante di ritardo.
 var _fall_check_delay := 0.0
-## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si muore.
+## Sull'host: il giocatore è caduto fuori dal livello, quindi muore senza
+## passare da terra.
+var _fell_out := false
+## Compagno a terra che si potrebbe rianimare da qui (solo per chi controlla).
+var _revive_candidate: FpsController
+## Compagno che stiamo rianimando tenendo premuto E (lato host e lato nostro).
+var _reviving: FpsController
+## Sull'host: ultimo tick di fisica in cui qualcuno ci ha rianimato.
+var _revived_frame := -10
+var _progress_send_left := 0.0
+## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si va giù.
 var _death_blend := 0.0
 ## Posa da vivo del corpo, per rialzarlo alla rinascita.
 var _body_rest: Transform3D
@@ -82,10 +113,9 @@ var _name_tag_height := 0.0
 var _body_tween: Tween
 ## Oggetto interagibile guardato in questo momento (null = nessuno).
 var _interact_target: Node
-## Statistiche della vita in corso, per l'HUD e la schermata di morte.
+## Statistiche della run in corso, per l'HUD e la schermata di fine run.
 var _kills := 0
-var _alive_time := 0.0
-var _best_time := 0.0
+var _run_time := 0.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
@@ -116,8 +146,11 @@ func _ready() -> void:
 	_visor_rest = _visor.transform
 	_name_tag_height = _name_tag.position.y
 	_apply_player_color()
-	_name_tag.text = "Giocatore %d" % player_number
+	_name_tag.text = display_name()
 	_health.died.connect(_on_died)
+	if not multiplayer.is_server():
+		# Chi entra a partita iniziata chiede all'host chi è a terra o morto.
+		_request_life.rpc_id(1)
 	if not is_multiplayer_authority():
 		_weapon.visible = false
 		_hud.visible = false
@@ -163,27 +196,29 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_recoil = _recoil.lerp(Vector2.ZERO, 1.0 - exp(-_weapon.data.recoil_recovery * delta))
-	if not _health.is_alive():
-		_death_blend = move_toward(_death_blend, 1.0, delta / 0.4)
+	var blend_target := {Life.ALIVE: 0.0, Life.DOWNED: 0.7, Life.DEAD: 1.0}[life] as float
+	_death_blend = move_toward(_death_blend, blend_target, delta / 0.4)
 	_update_camera()
 
 
 func _physics_process(delta: float) -> void:
-	if not _health.is_alive():
-		_respawn_left -= delta
 	_fall_check_delay -= delta
+	if life == Life.DOWNED and not multiplayer.is_server() and revive_progress <= 0.0:
+		bleed_left -= delta
 	if multiplayer.is_server():
-		_apply_host_rules()
+		_apply_host_rules(delta)
 	if not is_multiplayer_authority():
 		_follow_remote_state(delta)
 		return
-	if not _health.is_alive():
-		_physics_process_dead(delta)
+	if RunManager.is_running(self):
+		_run_time += delta
+	_hud.update_stats(_kills, _run_time)
+	_hud.update_revive(self)
+	if life != Life.ALIVE:
+		_physics_process_down(delta)
 		_publish_state()
 		return
 	rotation.y = _yaw
-	_alive_time += delta
-	_hud.update_stats(_kills, _alive_time)
 
 	if is_on_floor():
 		if Input.is_action_just_pressed("jump"):
@@ -213,16 +248,167 @@ func weapon() -> Weapon:
 	return _weapon
 
 
-## Sull'host, per ogni giocatore: chi cade fuori dal livello muore, chi è
-## morto da abbastanza tempo rinasce.
-func _apply_host_rules() -> void:
-	if _health.is_alive():
-		if global_position.y < kill_height and _fall_check_delay <= 0.0:
-			_health.take_damage(_health.current)
-	elif _respawn_left <= 0.0:
-		if NetSession.is_online():
-			_respawn.rpc()
-		_respawn()
+## Vero se è in piedi (vivo e non a terra).
+func is_standing() -> bool:
+	return life == Life.ALIVE
+
+
+## Sull'host, per ogni giocatore: chi cade fuori dal livello muore; chi sta
+## rianimando un compagno fa avanzare la rianimazione; chi è a terra si
+## dissangua, ma non mentre qualcuno lo sta rianimando.
+func _apply_host_rules(delta: float) -> void:
+	match life:
+		Life.ALIVE:
+			if global_position.y < kill_height and _fall_check_delay <= 0.0:
+				_fell_out = true
+				_health.take_damage(_health.current)
+			elif _can_revive(_reviving):
+				_reviving._host_add_revive(delta / _reviving.revive_time)
+		Life.DOWNED:
+			var being_revived := Engine.get_physics_frames() - _revived_frame <= 1
+			if not being_revived and revive_progress > 0.0:
+				_set_revive_progress(0.0, true)
+			if revive_progress >= 1.0:
+				host_revive()
+			elif not being_revived:
+				bleed_left -= delta
+				if bleed_left <= 0.0:
+					_host_set_life(Life.DEAD)
+
+
+## Sull'host: vero se da qui si può rianimare target.
+func _can_revive(target: FpsController) -> bool:
+	return is_instance_valid(target) and target != self and target.life == Life.DOWNED \
+			and life == Life.ALIVE and global_position.distance_to(target.global_position) <= revive_distance + 1.0
+
+
+## Sull'host: un compagno ci sta rianimando; amount è la frazione fatta in questo tick.
+func _host_add_revive(amount: float) -> void:
+	_revived_frame = Engine.get_physics_frames()
+	_set_revive_progress(minf(revive_progress + amount, 1.0))
+
+
+func _set_revive_progress(value: float, force_send := false) -> void:
+	revive_progress = value
+	if not NetSession.is_online():
+		return
+	_progress_send_left -= get_physics_process_delta_time()
+	if force_send or _progress_send_left <= 0.0:
+		_progress_send_left = 0.1
+		_receive_revive_progress.rpc(value)
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func _receive_revive_progress(value: float) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		revive_progress = value
+
+
+## Sull'host: rialza un giocatore a terra lì dove si trova, con un po' di vita.
+func host_revive() -> void:
+	if life != Life.DOWNED:
+		return
+	_health.restore(_health.max_health * revive_health_fraction)
+	_host_set_life(Life.ALIVE)
+
+
+## Sull'host: fa rinascere un giocatore morto in at, con la vita piena.
+func host_respawn(at: Vector3) -> void:
+	_health.reset()
+	_host_set_life(Life.ALIVE)
+	_teleport(at)
+	if NetSession.is_online():
+		_receive_teleport.rpc(at)
+
+
+## Sull'host, a inizio run: vita piena, punto di partenza, solo la pistola.
+func host_restart() -> void:
+	_health.reset()
+	_host_set_life(Life.ALIVE)
+	_weapon.host_set_loadout([["pistol"]], 0)
+	_teleport(_spawn_transform.origin)
+	_reset_run_stats()
+	if NetSession.is_online():
+		_receive_teleport.rpc(_spawn_transform.origin)
+		_receive_run_restart.rpc()
+
+
+## Sull'host: cambia lo stato di vita e lo manda a tutti.
+func _host_set_life(new_life: Life) -> void:
+	if new_life == Life.DOWNED:
+		bleed_left = bleed_out_time
+	_apply_life(new_life, bleed_left)
+	if NetSession.is_online():
+		_receive_life.rpc(new_life, bleed_left)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_life(new_life: int, new_bleed_left: float) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_apply_life(new_life as Life, new_bleed_left)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_life() -> void:
+	if multiplayer.is_server():
+		_receive_life.rpc_id(multiplayer.get_remote_sender_id(), life, bleed_left)
+
+
+func _apply_life(new_life: Life, new_bleed_left: float) -> void:
+	bleed_left = new_bleed_left
+	revive_progress = 0.0
+	if new_life == life:
+		return
+	life = new_life
+	_fell_out = false
+	_reviving = null
+	_show_dead_body(life != Life.ALIVE, life == Life.DEAD)
+	if is_multiplayer_authority():
+		_weapon.visible = life == Life.ALIVE
+		_hud.show_prompt("")
+		match life:
+			Life.ALIVE:
+				_fall_check_delay = 1.0
+				_weapon.refill()
+				_hud.hide_death()
+			Life.DOWNED:
+				_hud.show_downed()
+			Life.DEAD:
+				_hud.show_dead()
+	life_changed.emit(life)
+
+
+## Sposta il giocatore in at. Lo esegue chi lo controlla; gli altri lo
+## mostrano subito lì, senza aspettare la sua posizione.
+func _teleport(at: Vector3) -> void:
+	_fall_check_delay = 1.0
+	global_position = at
+	sync_position = at
+	velocity = Vector3.ZERO
+	_push = Vector3.ZERO
+	reset_physics_interpolation()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_teleport(at: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_teleport(at)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_run_restart() -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_reset_run_stats()
+
+
+func _reset_run_stats() -> void:
+	_kills = 0
+	_run_time = 0.0
+	_yaw = _spawn_transform.basis.get_euler().y
+	_pitch = 0.0
+	_recoil = Vector2.ZERO
+	if is_multiplayer_authority():
+		_hud.update_stats(_kills, _run_time)
 
 
 ## Scrive lo stato che MultiplayerSynchronizer invia agli altri partecipanti.
@@ -253,20 +439,32 @@ func _apply_player_color() -> void:
 	_name_tag.modulate = player_color.lightened(0.3)
 
 
-## Da morti si resta fermi (cadendo, se si è in aria) fino alla rinascita.
-func _physics_process_dead(delta: float) -> void:
+## A terra si striscia piano; da morti si resta fermi (cadendo, se si è in aria).
+func _physics_process_down(delta: float) -> void:
+	rotation.y = _yaw
 	if not is_on_floor():
 		velocity.y -= _gravity * gravity_multiplier * delta
-	velocity.x = 0.0
-	velocity.z = 0.0
+	var direction := Vector3.ZERO
+	if life == Life.DOWNED:
+		var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		direction = transform.basis * Vector3(input.x, 0.0, input.y)
+		_hud.update_bleed_out(bleed_left, revive_progress)
+	velocity.x = direction.x * crawl_speed
+	velocity.z = direction.z * crawl_speed
 	move_and_slide()
-	_hud.update_respawn_countdown(_respawn_left)
 
 
 ## Cerca l'oggetto interagibile sotto il mirino, aggiorna la scritta e, se si
 ## preme E, lo usa (sull'host direttamente, altrimenti chiedendolo all'host).
 func _handle_interaction() -> void:
 	_interact_target = null
+	# Un compagno a terra vicino ha la precedenza su casse e armi.
+	_revive_candidate = _nearest_downed_teammate()
+	var holding := _revive_candidate != null and Input.is_action_pressed("interact")
+	_set_reviving(_revive_candidate if holding else null)
+	if _revive_candidate:
+		_hud.show_prompt("" if holding else "Tieni premuto: rianima %s" % _revive_candidate.display_name())
+		return
 	var text := ""
 	var aim := -_aim_basis().z
 	var query := PhysicsRayQueryParameters3D.create(_head.global_position,
@@ -279,6 +477,47 @@ func _handle_interaction() -> void:
 	_hud.show_prompt(text)
 	if _interact_target and Input.is_action_just_pressed("interact"):
 		interact_with(_interact_target)
+
+
+## Nome mostrato sopra la testa e nei messaggi.
+func display_name() -> String:
+	return "Giocatore %d" % player_number
+
+
+## Il compagno a terra più vicino entro revive_distance, o null.
+func _nearest_downed_teammate() -> FpsController:
+	var best: FpsController = null
+	var best_distance := revive_distance
+	for player in get_tree().get_nodes_in_group("players"):
+		if player == self or not player is FpsController or player.life != Life.DOWNED:
+			continue
+		var distance: float = global_position.distance_to(player.global_position)
+		if distance <= best_distance:
+			best = player
+			best_distance = distance
+	return best
+
+
+## Inizia o smette di rianimare target (null = smette); lo decide l'host.
+func _set_reviving(target: FpsController) -> void:
+	if target == _reviving:
+		return
+	_reviving = target
+	if not multiplayer.is_server():
+		_request_revive.rpc_id(1, target.get_path() if target else NodePath())
+
+
+## Il compagno che si sta rianimando in questo momento, o null.
+func reviving() -> FpsController:
+	return _reviving
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_revive(target_path: NodePath) -> void:
+	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	var target := get_node_or_null(target_path) if not target_path.is_empty() else null
+	_reviving = target as FpsController
 
 
 ## Usa target: sull'host direttamente, altrimenti chiedendolo all'host.
@@ -343,67 +582,43 @@ func _on_damaged(_amount: float, source: Node, _hit_position: Vector3) -> void:
 
 
 func _on_enemy_killed(_enemy: Node, killer: Node) -> void:
-	if killer == self and _health.is_alive():
+	if killer == self:
 		_kills += 1
-		_hud.update_stats(_kills, _alive_time)
+		_hud.update_stats(_kills, _run_time)
 
 
+## Uccisioni nella run in corso.
+func kills() -> int:
+	return _kills
+
+
+## Finita la vita: lo stato (a terra o morto) lo decide l'host e arriva a tutti.
 func _on_died(_source: Node) -> void:
-	_respawn_left = respawn_time
-	_show_dead_body(true)
-	if not is_multiplayer_authority():
-		return
-	_weapon.visible = false
-	_hud.show_prompt("")
-	_best_time = maxf(_best_time, _alive_time)
-	_hud.show_death(_kills, _alive_time, _best_time)
-	_hud.update_respawn_countdown(_respawn_left)
+	if multiplayer.is_server():
+		_host_set_life(Life.DEAD if _fell_out else Life.DOWNED)
 
 
-## Il corpo cade a terra da morto (lo vedono gli altri; per sé resta l'ombra)
-## e si rialza alla rinascita.
-func _show_dead_body(dead: bool) -> void:
+## Il corpo cade a terra (lo vedono gli altri; per sé resta l'ombra) e si
+## rialza quando si torna in piedi. Il nome di chi è a terra si vede anche
+## attraverso i muri, così i compagni lo trovano.
+func _show_dead_body(down: bool, dead := false) -> void:
 	# Disteso all'indietro, con i piedi dove stava in piedi.
 	var lying := Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0.0, 0.4, 0.0))
 	if _body_tween:
 		_body_tween.kill()
 	_body_tween = create_tween().set_parallel()
-	_body_tween.tween_property(_body_mesh, "transform", lying * _body_rest if dead else _body_rest, 0.35) 			.set_trans(Tween.TRANS_BOUNCE if dead else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_body_tween.tween_property(_visor, "transform", lying * _visor_rest if dead else _visor_rest, 0.35) 			.set_trans(Tween.TRANS_BOUNCE if dead else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_body_tween.tween_property(_name_tag, "position:y", _name_tag_height - 1.2 if dead else _name_tag_height, 0.35)
+	_body_tween.tween_property(_body_mesh, "transform", lying * _body_rest if down else _body_rest, 0.35) \
+			.set_trans(Tween.TRANS_BOUNCE if down else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_body_tween.tween_property(_visor, "transform", lying * _visor_rest if down else _visor_rest, 0.35) \
+			.set_trans(Tween.TRANS_BOUNCE if down else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_body_tween.tween_property(_name_tag, "position:y", _name_tag_height - 1.2 if down else _name_tag_height, 0.35)
+	_name_tag.text = display_name() + ("  ·  A TERRA" if down and not dead else "")
+	_name_tag.no_depth_test = down and not dead
+	# Visto attraverso i muri ha sempre la stessa grandezza: leggibile da
+	# lontano, senza coprire la visuale a chi lo rianima da vicino.
+	_name_tag.fixed_size = _name_tag.no_depth_test
+	_name_tag.pixel_size = 0.0012 if _name_tag.fixed_size else 0.005
 	_name_tag.modulate.a = 0.5 if dead else 1.0
-
-
-## Torna al punto di partenza con la vita piena. La decide l'host: chiamata
-## direttamente lì, con una chiamata di rete sugli altri.
-@rpc("any_peer", "call_remote", "reliable")
-func _respawn() -> void:
-	if multiplayer.get_remote_sender_id() > 1:
-		return
-	# Sull'host riempie la vita; sugli altri non fa nulla e la vita arriva dall'host.
-	_health.reset()
-	_show_dead_body(false)
-	_fall_check_delay = 1.0
-	if not is_multiplayer_authority():
-		# Si mostra subito al punto di partenza, senza aspettare la sua posizione.
-		global_position = _spawn_transform.origin
-		sync_position = global_position
-		reset_physics_interpolation()
-		return
-	global_transform = _spawn_transform
-	velocity = Vector3.ZERO
-	_push = Vector3.ZERO
-	_yaw = _spawn_transform.basis.get_euler().y
-	_pitch = 0.0
-	_recoil = Vector2.ZERO
-	_death_blend = 0.0
-	reset_physics_interpolation()
-	_weapon.visible = true
-	_weapon.refill()
-	_kills = 0
-	_alive_time = 0.0
-	_hud.update_stats(_kills, _alive_time)
-	_hud.hide_death()
 
 
 func _handle_fire() -> void:
@@ -432,10 +647,10 @@ func _update_camera() -> void:
 	var eye := _head.get_global_transform_interpolated().origin
 	var aim := _aim_basis()
 	if _death_blend > 0.0:
-		# Da morti la visuale crolla verso terra e si inclina di lato.
+		# A terra la visuale crolla verso il pavimento; da morti si inclina anche di lato.
 		var t := smoothstep(0.0, 1.0, _death_blend)
 		eye.y -= death_camera_drop * t
-		aim = aim * Basis(Vector3.BACK, deg_to_rad(25.0) * t)
+		aim = aim * Basis(Vector3.BACK, deg_to_rad(25.0) * clampf((_death_blend - 0.7) / 0.3, 0.0, 1.0))
 	_camera.global_transform = Transform3D(aim, eye)
 
 

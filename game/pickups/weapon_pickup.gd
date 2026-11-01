@@ -19,6 +19,7 @@ var _time := 0.0
 
 
 func _ready() -> void:
+	add_to_group("weapon_pickups")
 	weapon_data = WeaponCatalog.build(spec)
 	var color := WeaponCatalog.rarity_color(weapon_data)
 	if weapon_data.viewmodel:

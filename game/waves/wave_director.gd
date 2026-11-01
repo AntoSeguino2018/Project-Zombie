@@ -85,6 +85,24 @@ static func of(node: Node) -> WaveDirector:
 	return node.get_tree().get_first_node_in_group("wave_director")
 
 
+## Sull'host: ferma le ondate (run persa) finché non si riparte.
+func host_pause() -> void:
+	set_physics_process(false)
+
+
+## Sull'host: di nuovo dall'inizio, in attesa della prima ondata. Gli zombie
+## rimasti non contano più: li toglie chi chiama.
+func host_restart() -> void:
+	wave = 0
+	phase = Phase.WAITING
+	remaining = 0
+	_time_left = start_delay
+	_queue.clear()
+	_alive.clear()
+	set_physics_process(true)
+	_publish()
+
+
 ## Secondi alla prossima ondata (durante l'attesa e la pausa).
 func seconds_to_next_wave() -> float:
 	return maxf(_time_left, 0.0)

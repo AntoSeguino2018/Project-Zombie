@@ -111,6 +111,12 @@ func reset() -> void:
 		_set_current(max_health)
 
 
+## Imposta la vita a value, anche da morti (per esempio quando si viene rianimati).
+func restore(value: float) -> void:
+	if is_multiplayer_authority():
+		_set_current(clampf(value, 0.0, max_health))
+
+
 ## Cambia la vita, avvisa chi ascolta e, in rete, manda il cambiamento a tutti.
 func _set_current(value: float, dealt := 0.0, source: Node = null, hit_position := Vector3.ZERO) -> void:
 	_apply(value, dealt, source, hit_position)
