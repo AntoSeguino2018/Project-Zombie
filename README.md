@@ -26,6 +26,7 @@ game/            Il gioco, organizzato per funzionalità
 shared/          Codice e risorse comuni
   shaders/         shader dello stile grafico
   utils/
+docs/armi/       Una scheda per ogni arma: danni, difetti da correggere in Blender e in Godot
 tests/           Test automatici (bash tests/run_tests.sh; ignorati da Godot)
 tools/           Script di supporto, es. il generatore della mappa (ignorati da Godot)
 blender/         File sorgente .blend (ignorati da Godot)

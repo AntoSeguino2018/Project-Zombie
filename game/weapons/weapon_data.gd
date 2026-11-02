@@ -31,6 +31,9 @@ enum Rarity { COMMON, RIGGED, UNHINGED }
 @export var pellets := 1
 ## Colpi nel caricatore (0 = infiniti). Per ora la riserva è infinita.
 @export var magazine_size := 30
+## Se vero, il caricatore non cambia mai: niente tratti né oggetti che lo
+## allungano (es. la Magnum, sei colpi e basta).
+@export var fixed_magazine := false
 ## Secondi per ricaricare.
 @export var reload_time := 1.5
 
@@ -65,6 +68,11 @@ enum Rarity { COMMON, RIGGED, UNHINGED }
 @export var bounces := 0
 ## Quanti nemici attraversa un colpo prima di fermarsi.
 @export var pierce := 0
+## Danno a ogni nemico attraversato, rispetto al precedente (1 = sempre pieno,
+## 0.5 = si dimezza). Vale per le armi a un colpo solo (non a pallini).
+@export_range(0.0, 1.0) var pierce_falloff := 1.0
+## Sotto questo danno il colpo che attraversa non scende mai.
+@export var pierce_min_damage := 0.0
 ## Danno al secondo del fuoco appiccato dai colpi (0 = niente fuoco).
 @export var burn_damage := 0.0
 ## Secondi di fuoco dopo l'ultimo colpo.

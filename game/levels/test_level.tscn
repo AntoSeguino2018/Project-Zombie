@@ -300,6 +300,12 @@ transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 7.5, 0, 3)
 [node name="CrateYard" parent="Crates" instance=ExtResource("17_crate")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14, 0, -2)
 
+[node name="CrateMagnum" parent="Crates" instance=ExtResource("17_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 4.5)
+price = 0
+forced_spec = ["magnum"]
+refill_time = 5.0
+
 [node name="Machines" type="Node3D" parent="." groups=["navigation_source"]]
 
 [node name="Espresso" parent="Machines" instance=ExtResource("23_machine")]
@@ -317,6 +323,14 @@ boost = ExtResource("26_merendina")
 [node name="Pickups" type="Node3D" parent="."]
 
 [node name="Labels" type="Node3D" parent="."]
+
+[node name="MagnumLabel" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.6, 4.5)
+billboard = 1
+modulate = Color(1, 0.55, 0.15, 1)
+text = "Cassa Magnum (prova)"
+font_size = 48
+outline_size = 12
 
 [node name="StaircaseLabel" type="Label3D" parent="Labels"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2, -1.5)

@@ -102,6 +102,8 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 - **Oggetti della run:** potenziano le armi e si accumulano, creando combo sempre più esagerate.
 - **Tra una run e l'altra:** si sbloccano nuove armi sbroccate che entrano tra quelle trovabili.
 
+✅ **Prima sbroccata: la Magnum**, revolver tech "da ingegneria informatica" (chip e piste sull'impugnatura, ventola, LED azzurri, la Z in binario). Il colpo attraversa tutti gli zombie: 200 al primo, poi dimezza a ognuno fino a 25. Sei colpi e basta (niente estensioni), non rompe i muri. I LED sul tamburo mostrano i colpi rimasti.
+
 💡 **Spunti di armi sbroccate**, solo per dare il tono (le migliori nasceranno dai vostri meme):
 - **Moka a pressione:** spruzza un getto bollente che si allarga, una specie di lanciafiamme
 - **Sparagraffe rotante:** una mitragliatrice di graffette che "inchioda" i nemici al muro

@@ -8,8 +8,11 @@ extends StaticBody3D
 ## In rete apertura, contenuto e richiusura li decide l'host; gli altri vedono
 ## il coperchio aprirsi e l'arma comparire (PickupReplicator).
 
-## Soldi per aprirla (li paga chi la apre).
+## Soldi per aprirla (li paga chi la apre; 0 = gratis).
 @export var price := 100
+## Se non è vuoto, la cassa dà sempre quest'arma (spec di WeaponCatalog)
+## invece di una a caso. Serve per il poligono di prova.
+@export var forced_spec: Array = []
 ## Secondi dall'apertura prima che si richiuda (e si possa riaprire).
 @export var refill_time := 60.0
 ## Altezza dell'arma che esce, sopra la base della cassa.
@@ -51,6 +54,8 @@ func _physics_process(delta: float) -> void:
 func interaction_text(player: FpsController) -> String:
 	if is_open:
 		return ""
+	if price <= 0:
+		return "Apri la cassa"
 	var text := "Apri la cassa  [color=#ffd24a]%d €[/color]" % price
 	var money := player.inventory().money
 	if money < price:
@@ -64,7 +69,7 @@ func interact(player: FpsController, _slot: int) -> void:
 		return
 	_set_open(true)
 	_refill_left = refill_time
-	var spec := WeaponCatalog.roll(_rng)
+	var spec := forced_spec.duplicate() if not forced_spec.is_empty() else WeaponCatalog.roll(_rng)
 	var at := global_position + Vector3.UP * pickup_height
 	var replicator := PickupReplicator.of(self)
 	var pickup: WeaponPickup = replicator.spawn_pickup(spec, at) if replicator else null

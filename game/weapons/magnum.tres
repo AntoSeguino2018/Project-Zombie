@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="1_data"]
+[ext_resource type="PackedScene" path="res://game/weapons/viewmodels/magnum_viewmodel.tscn" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_data")
+catalog_id = "magnum"
+display_name = "Magnum"
+feminine = false
+rarity = 2
+viewmodel = ExtResource("2_viewmodel")
+damage = 200.0
+fire_rate = 1.5
+automatic = false
+max_range = 200.0
+spread_degrees = 0.2
+magazine_size = 6
+fixed_magazine = true
+reload_time = 3.0
+recoil_pitch_degrees = 6.0
+recoil_yaw_degrees = 1.5
+recoil_recovery = 7.0
+pierce = 99
+pierce_falloff = 0.5
+pierce_min_damage = 25.0

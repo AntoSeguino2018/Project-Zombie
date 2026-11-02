@@ -7,7 +7,9 @@ extends Node3D
 ## quando si svuota).
 ##
 ## Il nodo sta sotto la camera e contiene il modello in prima persona dell'arma
-## equipaggiata: a ogni colpo arretra e si alza, poi torna in posizione.
+## equipaggiata: a ogni colpo arretra e si alza, poi torna in posizione. Un
+## modello con animazioni sue (es. la Magnum) riceve on_equip(arma), on_fire(),
+## on_reload(durata) e on_inspect(), e qui si muove molto meno.
 ## In rete chi spara vede subito i suoi colpi (scia, impatti, proiettili) e
 ## li manda agli altri, che li mostrano dall'arma del suo giocatore. Il danno
 ## invece lo decide l'host: riceve cosa ha colpito il tiratore, controlla che
@@ -101,10 +103,14 @@ func _process(delta: float) -> void:
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-kick_recovery * delta))
 	# Durante il cambio l'arma scende fuori dallo schermo e risale.
 	var lowered := _switch_left / switch_time if switch_time > 0.0 else 0.0
-	# In ricarica l'arma si abbassa e si inclina di lato, poi torna su.
-	var reloading := sin(reload_progress() * PI) if is_reloading() else 0.0
-	position = _rest_position + Vector3(0.0, -0.3 * lowered - 0.1 * reloading, _kick * kick_distance)
-	rotation.x = deg_to_rad(_kick * kick_angle_degrees) - 0.6 * lowered - 0.3 * reloading
+	# In ricarica l'arma si abbassa e si inclina di lato, poi torna su (se il
+	# modello non ha un'animazione sua). Il rinculo di un modello animato è
+	# soprattutto nella sua animazione.
+	var animated := _model_animates()
+	var reloading := sin(reload_progress() * PI) if is_reloading() and not animated else 0.0
+	var kick := _kick * (0.3 if animated else 1.0)
+	position = _rest_position + Vector3(0.0, -0.3 * lowered - 0.1 * reloading, kick * kick_distance)
+	rotation.x = deg_to_rad(kick * kick_angle_degrees) - 0.6 * lowered - 0.3 * reloading
 	rotation.z = 0.6 * reloading
 
 
@@ -122,6 +128,8 @@ func equip(slot: int, force := false) -> void:
 	if _model:
 		add_child(_model)
 		muzzle = _model.get_node_or_null("Muzzle")
+		if _model.has_method("on_equip"):
+			_model.on_equip(self)
 	_switch_left = switch_time
 	# Cambiare arma interrompe la ricarica.
 	_reload_left = 0.0
@@ -238,12 +246,24 @@ func start_reload() -> void:
 	if ammo() >= magazine_of(data):
 		return
 	_reload_left = maxf(data.reload_time / reload_speed_multiplier, 0.01)
+	if _model and _model.has_method("on_reload"):
+		_model.on_reload(_reload_left)
+
+
+## Ispeziona l'arma (se il modello ha un'animazione per farlo e l'arma è libera).
+func inspect() -> void:
+	if _model and _model.has_method("on_inspect") and not is_reloading() and _switch_left <= 0.0:
+		_model.on_inspect()
+
+
+func _model_animates() -> bool:
+	return _model != null and _model.has_method("has_own_animations") and _model.has_own_animations()
 
 
 ## Colpi in un caricatore pieno di weapon_data, con gli oggetti del giocatore
 ## (0 o meno = munizioni infinite).
 func magazine_of(weapon_data: WeaponData) -> int:
-	if weapon_data.magazine_size <= 0:
+	if weapon_data.magazine_size <= 0 or weapon_data.fixed_magazine:
 		return weapon_data.magazine_size
 	return ceili(weapon_data.magazine_size * magazine_multiplier - 0.001)
 
@@ -255,6 +275,8 @@ func fire(origin: Vector3, direction: Vector3, exclude: Array[RID] = []) -> void
 	_kick = 1.0
 	if data.magazine_size > 0 and _slot < _ammo.size():
 		_ammo[_slot] = maxi(_ammo[_slot] - 1, 0)
+	if _model and _model.has_method("on_fire"):
+		_model.on_fire()
 	if data.projectile_scene:
 		_fire_projectile(origin, _apply_spread(direction.normalized()), exclude)
 	else:
@@ -387,11 +409,24 @@ func _host_shot_damage(weapon_data: WeaponData, hits: Array, blasts: PackedVecto
 	var add := func(target: HealthComponent, dealt: float, _killed: bool, point: Vector3) -> void:
 		var total: float = totals[target][0] if totals.has(target) else 0.0
 		totals[target] = [total + dealt, point]
+	# Colpi che si indeboliscono attraversando: il primo bersaglio (il più
+	# vicino a chi spara) prende il danno pieno, i successivi sempre meno.
+	# L'ordine lo ricalcola l'host dalle distanze, non lo decide il tiratore.
+	var falloff := weapon_data.pierce_falloff < 1.0 and weapon_data.pellets == 1
+	if falloff:
+		hits = hits.duplicate()
+		var from: Vector3 = owner.global_position
+		hits.sort_custom(func(a, b): return from.distance_squared_to(a[1]) < from.distance_squared_to(b[1]))
+	var rank := 0
 	for target_hit in hits:
 		var target: HealthComponent = target_hit[0]
 		if not target.is_alive():
 			continue
-		add.call(target, target.take_damage(weapon_data.damage, owner, target_hit[1]), false, target_hit[1])
+		var damage := weapon_data.damage
+		if falloff:
+			damage = maxf(damage * pow(weapon_data.pierce_falloff, rank), weapon_data.pierce_min_damage)
+			rank += 1
+		add.call(target, target.take_damage(damage, owner, target_hit[1]), false, target_hit[1])
 		target.ignite(weapon_data.burn_damage, weapon_data.burn_time, owner)
 	var no_exclude: Array[RID] = []
 	for center in blasts:
@@ -457,7 +492,10 @@ func _confirm_damage(target_path: NodePath, dealt: float, killed: bool, point: V
 
 
 ## Sugli altri: scie, impatti ed esplosioni di un colpo istantaneo del tiratore.
-@rpc("authority", "call_remote", "unreliable_ordered")
+## Non garantita ma nemmeno ordinata: in modalità ordinata un colpo veniva
+## scartato se nel frattempo era arrivato un pacchetto più recente, e a volte gli
+## altri non vedevano la scia.
+@rpc("authority", "call_remote", "unreliable")
 func _show_remote_shot(segments: PackedVector3Array, normals: PackedVector3Array,
 		blasts: PackedVector3Array, blast_radius: float) -> void:
 	if segments.size() == normals.size() * 2:

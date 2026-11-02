@@ -188,6 +188,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("reload"):
 		_weapon.start_reload()
+	elif event.is_action_pressed("inspect"):
+		_weapon.inspect()
 	elif event.is_action_pressed("weapon_1"):
 		_weapon.equip(0)
 	elif event.is_action_pressed("weapon_2"):

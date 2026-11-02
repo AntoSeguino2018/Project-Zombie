@@ -2,7 +2,7 @@
 
 Questo file riassume cosa è stato fatto finora, come è fatto il gioco e come si lavora. Serve a far partire in fretta una nuova sessione (persona o istanza di Claude). Le fonti di verità restano [DESIGN.md](DESIGN.md) (idee e decisioni di gioco) e [ROADMAP.md](ROADMAP.md) (passi fatti e da fare); in caso di dubbio vincono loro.
 
-Aggiornato al commit `4166f5d` (Passo 3.6).
+Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, modellata in Blender e portata in gioco (vedi §4 e §8). Per ogni arma c'è una scheda in [`docs/armi/`](docs/armi/LEGGIMI.md).
 
 ---
 
@@ -23,13 +23,14 @@ Aggiornato al commit `4166f5d` (Passo 3.6).
 - **Claude:** scrive codice e scene, li verifica con **test automatici** (headless e in rete con più istanze) e **screenshot** in finestra, poi spiega cosa provare.
 - **Commit e push solo dopo l'approvazione esplicita** dello sviluppatore (di solito "Sì, commit"), mai prima. Messaggio nel formato `Passo X.Y: titolo` + elenco puntato in italiano, con la riga `Co-Authored-By` richiesta dall'ambiente. Si lavora su `main`, remoto GitHub `AntoSeguino2018/Project-Zombie`.
 - **Un passo alla volta:** si propone il passo, lo sviluppatore approva, si implementa, si testa, si mostra, si committa. Le idee nuove vanno nella sezione "Idee raccolte" della roadmap.
+- **Armi:** per ogni arma nuova si crea la sua scheda in `docs/armi/` (schema in `docs/armi/LEGGIMI.md`) e la si tiene aggiornata con i difetti trovati e corretti.
 - **Essere onesti:** dire cosa non si è verificato, cosa non si riesce a riprodurre, e quando un'idea costa troppo.
 
 ## 3. Tecnica
 
 - **Motore:** Godot **4.7.2** standard (GDScript), fisica **Jolt**, interpolazione della fisica attiva. Eseguibile usato per i test: `C:\Dev\Tools\Godot\Godot_v4.7.2-stable_win64_console.exe`.
 - **Cartella:** `C:\Dev\Project-Zombie` (fuori da OneDrive di proposito). Scena iniziale: `game/ui/main_menu.tscn`.
-- **Struttura:** per funzionalità sotto `game/` (`player`, `weapons`, `combat`, `enemies`, `waves`, `run`, `items`, `boosts`, `pickups`, `levels`, `net`, `ui`); shader in `shared/shaders`; materiali greybox in `assets/materials`; generatore della mappa in `tools/`.
+- **Struttura:** per funzionalità sotto `game/` (`player`, `weapons`, `combat`, `enemies`, `waves`, `run`, `items`, `boosts`, `pickups`, `levels`, `net`, `ui`); shader in `shared/shaders`; materiali greybox in `assets/materials`; generatore della mappa in `tools/`; modelli esportati in `assets/models/`; sorgenti Blender in `blender/` (ignorata da Godot con `.gdignore`); schede delle armi in `docs/armi/`.
 - **Convenzioni:** 1 unità = 1 m; file `snake_case`, classi e nodi `PascalCase`; indentazione con tab; commenti di documentazione `##` in italiano sopra classi, export e funzioni pubbliche. **Tipi espliciti** quando il valore viene da un Variant (le inferenze da Variant danno errore). Dati di gioco come risorse `.tres` (armi, tratti, ondate, boost, oggetti) invece che numeri nel codice.
 - **Layer di fisica:** 1 Mondo, 2 Giocatori, 3 Nemici (valore 4), 4 Detriti (valore 8), 5 Interagibili (valore 16).
 
@@ -59,7 +60,7 @@ Aggiornato al commit `4166f5d` (Passo 3.6).
 **Fase 3, core loop**
 - **3.1 Armi trovabili:**
   - Armi base: pistola (di partenza), carabina, fucile a pompa, mitraglietta, lanciagranate.
-  - **Rarità:** comune grigia, truccata azzurra, sbroccata arancione (le sbroccate devono ancora arrivare).
+  - **Rarità:** comune grigia, truccata azzurra, sbroccata arancione (armi uniche, senza tratti: per ora la Magnum).
   - **Tratti** che cambiano numeri e nome, e **trucchi** per le armi a colpo istantaneo: rimbalzante, perforante, esplosiva, incendiaria, doppia canna.
   - Ogni arma è descritta da uno "spec" (`["carbine","fast","pierce"]`) che si ricostruisce con `WeaponCatalog.build`.
   - **Casse** (E per aprire, 100 €, si richiudono dopo 60 s). Due armi alla volta; con le mani piene lo scambio lascia l'arma ai piedi del giocatore.
@@ -84,10 +85,17 @@ Aggiornato al commit `4166f5d` (Passo 3.6).
   - 6 casse, 7 macchinette, 15 punti di comparsa.
   - Zombie con anti-incastro (scivolano di lato se non avanzano).
   - Il vecchio livello resta come "Poligono di prova".
+- **Prima arma sbroccata: la Magnum** (modello vero da Blender):
+  - colpo che attraversa gli zombie con danno a scalare (200, 100, 50, poi 25);
+  - 6 colpi fissi, niente tratti, non rompe i muri;
+  - LED che contano i colpi; animazioni di sparo, ricarica e ispezione (tasto **V**);
+  - rara nelle casse, sempre disponibile nella cassa gratuita del Poligono.
+
+  Dettagli e difetti aperti in [`docs/armi/magnum.md`](docs/armi/magnum.md).
 
 ## 5. Prossimi passi (da ROADMAP)
 
-- **Prima di tutto:** definire meglio il gameplay con lo sviluppatore (come si vince, cosa succede tra le ondate, ruolo della distruzione, mappa immensa sì/no). Proposta: una sessione di design a domande, con alternative, e decisioni scritte in DESIGN.md prima di altro codice.
+- **Prima di altro gameplay:** definire meglio il gameplay con lo sviluppatore (come si vince, cosa succede tra le ondate, ruolo della distruzione, mappa immensa sì/no). Proposta: una sessione di design a domande, con alternative, e decisioni scritte in DESIGN.md prima di altro codice.
 - **3.7** fine della run e schermata con le statistiche; **3.8** playtest della run completa.
 - **2.5** prova con 4 istanze e con amici su internet; **2.6** Steam (lobby, inviti).
 - **Fase 4** personaggi (4 slot abilità più passiva). **Fase 5** grafica vera.
@@ -102,6 +110,7 @@ Aggiornato al commit `4166f5d` (Passo 3.6).
 - **Effetti accumulati:** segni dei colpi limitati a 40, effetti piccoli senza ombre, cose a terra che spariscono dopo 2 minuti.
 - **`tools/build_complex.py` riscrive `complex.tscn` da zero:** se lo sviluppatore modifica la mappa a mano nell'editor, non rilanciare lo script senza riportare le modifiche.
 - **Scambio d'armi:** non lasciare l'arma dove ne compare un'altra (era il bug "le casse danno solo lanciagranate").
+- **Export glTF da Blender con `NLA_TRACKS`:** dopo l'esportazione gli oggetti animati possono restare spostati nel file Blender (`location` e `scale` cambiate). Se si salva o si riesporta senza ripristinarli, l'errore finisce anche nel `.blend` e nel `.glb` successivo (era il bug "il tamburo non entra nell'arma"). Dopo ogni export vanno ripristinate le posizioni e ricontrollate prima di salvare. Inoltre le strisce NLA vanno portate tutte al fotogramma 1 prima dell'export e rimesse a posto dopo, altrimenti le clip conservano il ritardo della sequenza.
 
 ## 7. Test
 
@@ -114,26 +123,40 @@ Aggiornato al commit `4166f5d` (Passo 3.6).
   - soldi, macchinette e boost;
   - oggetti e loro effetti;
   - collegamenti del Complesso (ogni zona, cassa e punto di comparsa raggiungibile);
+  - Magnum: danni a scalare, caricatore fisso, muri, LED e animazioni (`test_37`, `net_magnum`);
   - versioni in rete di quasi tutto.
 
   A ogni passo si rilancia tutto e si aggiunge un `test_3x` (e se serve un `net_*`) per il passo nuovo.
 - **Script lunghi da lanciare a mano:** `waves_complex.gd` (10 ondate nel Complesso, segnala zombie incastrati) e `bench_items_win.gd` (FPS in finestra con molti oggetti, senza `--headless`).
-- **Fallimento saltuario noto:** in `net_combat` ogni tanto fallisce "l'host vede la scia del colpo del client". Le scie degli spari altrui viaggiano come RPC non garantite (`unreliable_ordered`, per non rallentare la rete) e a volte la prima si perde. Rilanciato passa; è un effetto solo visivo.
+- **Fallimento saltuario noto:** in `net_combat` ogni tanto fallisce il controllo sulla scia del colpo dell'altro giocatore. Le scie viaggiano come RPC non garantite; prima erano anche "ordinate" e venivano scartate se arrivava prima un pacchetto più recente: da quando sono `unreliable` semplici succede di rado (1 volta su 17 nelle prove). Rilanciato passa; è un effetto solo visivo.
 
 ## 8. Direzione artistica e modelli (stato della discussione)
 
-- Pipeline prevista: disegni dello sviluppatore → modelli low-poly in Blender → glTF (`.glb`) in `assets/models/` → Godot. **Blender non è ancora installato** sul PC.
-- Claude può creare modelli scrivendo script Python per Blender (`bpy`) eseguiti senza interfaccia, esportarli e fotografarli per controllarli; non serve l'MCP.
+- Pipeline: disegni dello sviluppatore → modelli low-poly in Blender → glTF (`.glb`) in `assets/models/` → Godot. **Blender 5.2.3 LTS è installato** (versione Steam) con l'add-on MCP ufficiale di Blender Lab.
+- Claude crea modelli e animazioni con script Python (`bpy`) tramite l'MCP, nell'app Claude: Blender deve essere aperto con il server avviato (Preferences > Add-ons > MCP, Auto Start attivo, porta 9876). La modalità senza finestra non funziona perché `BLENDER_PATH` non è impostata.
 - **Valutazione onesta:**
   - **Bene:** moduli della mappa e oggetti di scena.
   - **Discreto:** armi, meglio con un disegno di lato.
   - **Sufficiente:** zombie a pezzi rigidi, con animazioni fatte nel codice.
   - **Scarso:** personaggi organici, scheletri e animazioni curate.
 - Per i personaggi le alternative realistiche sono kit CC0 (Quaternius, Kenney) personalizzati, Mixamo per le animazioni, un artista su commissione, oppure lo sviluppatore che impara le basi di Blender.
-- Proposto e non ancora fatto: un "modello di prova" (un'arma, uno zombie, un pezzo di muro) per vedere il livello reale.
+- Primo modello reale fatto: la Magnum (sotto). Restano da provare uno zombie e un pezzo di muro.
 - **Mappa immensa e distruzione:** fattibile solo con altre basi:
   - navigazione a tasselli, che si ricalcola solo dove c'è un crollo;
   - materiali con blocchi di dimensioni diverse, distruttibili solo dove serve;
   - caricamento a settori.
 
   Le idee di gioco emerse: muri di cartongesso da sfondare, pilastri portanti che fanno crollare il soffitto, pavimenti che cedono, zombie che sfondano le pareti, obiettivi da demolire, settori che si aprono, mappa composta da moduli prefabbricati diversi a ogni run.
+
+### Magnum (primo modello vero) e schede delle armi
+
+- **Ogni arma ha una scheda** in [`docs/armi/`](docs/armi/LEGGIMI.md): danni e peculiarità, sezione Blender (tempi delle animazioni, difetti, vincoli) e sezione Godot (scena, collegamento delle animazioni, difetti, verifiche). Quando si trova un difetto lo si aggiunge lì; quando lo si corregge lo si sposta in "Corretti" con la data. Arma nuova = scheda nuova con lo stesso schema.
+- **Magnum:** scheda completa in [`docs/armi/magnum.md`](docs/armi/magnum.md). In breve:
+  - modello `assets/models/weapons/magnum.glb` (sorgente `blender/weapons/magnum.blend`) con animazioni `Riposo`, `Sparo`, `Ricarica`, `Ispezione`;
+  - colpo che attraversa gli zombie con danno 200, 100, 50, minimo 25; 6 colpi fissi; niente tratti; non rompe i muri;
+  - LED sul tamburo (uno per colpo) e in cima al fusto, con lo shader `led_mask.gdshader`;
+  - le animazioni sono collegate dall'interfaccia generica dei modelli animati in `Weapon`: `on_equip`, `on_fire`, `on_reload`, `on_inspect`.
+- **Difetti aperti più importanti:**
+  - errori all'importazione per le parti con scala 0 (si corregge in Blender);
+  - nella ricarica il caricatore compare dal nulla e passa vicino alla camera;
+  - l'arma a terra è troppo grande (circa 80 cm).

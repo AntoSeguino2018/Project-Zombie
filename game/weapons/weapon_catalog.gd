@@ -16,6 +16,8 @@ const BASES := {
 	"shotgun": "res://game/weapons/shotgun.tres",
 	"smg": "res://game/weapons/smg.tres",
 	"grenade_launcher": "res://game/weapons/grenade_launcher.tres",
+	# Sbroccate: armi uniche, senza tratti.
+	"magnum": "res://game/weapons/magnum.tres",
 }
 
 ## Probabilità relativa di trovare ogni arma base in una cassa.
@@ -25,6 +27,7 @@ const BASE_WEIGHTS := {
 	"shotgun": 2.5,
 	"smg": 2.5,
 	"grenade_launcher": 1.5,
+	"magnum": 0.5,
 }
 
 ## Nome da aggiungere all'arma: [maschile, femminile]. Gli aggettivi vengono
@@ -58,7 +61,9 @@ static func build(spec: Array) -> WeaponData:
 	var data: WeaponData = base(base_id).duplicate()
 	var adjectives := PackedStringArray()
 	var phrases := PackedStringArray()
-	for i in range(1, spec.size()):
+	# Le sbroccate sono uniche: niente tratti, nemmeno se lo spec ne avesse.
+	var trait_count := spec.size() if data.rarity != WeaponData.Rarity.UNHINGED else 1
+	for i in range(1, trait_count):
 		var trait_id: String = spec[i]
 		if not TRAITS.has(trait_id) or data.traits.has(trait_id):
 			continue
@@ -91,6 +96,8 @@ static func build_all(specs: Array) -> Array[WeaponData]:
 static func roll(rng: RandomNumberGenerator) -> Array:
 	var base_id: String = _pick_weighted(rng, BASE_WEIGHTS)
 	var spec: Array = [base_id]
+	if base(base_id).rarity == WeaponData.Rarity.UNHINGED:
+		return spec
 	var hitscan := base(base_id).projectile_scene == null
 	var count := _pick_index(rng, TRAIT_COUNT_WEIGHTS)
 	var has_trick := false

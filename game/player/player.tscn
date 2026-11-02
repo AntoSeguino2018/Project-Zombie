@@ -417,6 +417,7 @@ theme_override_font_sizes/font_size = 18
 text = "WASD muoviti   ·   Spazio salta   ·   Shift corri
 Click sinistro spara   ·   R ricarica   ·   F pugno
 E apri casse e raccogli armi (tieni premuto: rianima un compagno)
+V ispeziona l'arma (se ha un'animazione)
 F3 statistiche delle prestazioni
 1 / 2 o rotella cambia arma   ·   Esc libera il mouse"
 
