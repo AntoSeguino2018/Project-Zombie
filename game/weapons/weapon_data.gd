@@ -17,6 +17,9 @@ enum Rarity { COMMON, RIGGED, UNHINGED }
 @export var rarity := Rarity.COMMON
 ## Modello in prima persona. Deve contenere un Marker3D "Muzzle" sulla bocca.
 @export var viewmodel: PackedScene
+## Grandezza dell'arma a terra (sopra le casse) rispetto alle altre: a terra si
+## mostra il modello in prima persona ingrandito, e un modello grande va ridotto.
+@export var pickup_scale := 1.0
 ## Danno di ogni colpo (per i proiettili: il colpo diretto).
 @export var damage := 10.0
 ## Colpi al secondo.
@@ -44,6 +47,9 @@ enum Rarity { COMMON, RIGGED, UNHINGED }
 @export var recoil_yaw_degrees := 0.4
 ## Velocità con cui la visuale torna al punto di mira originale.
 @export var recoil_recovery := 10.0
+## Tremolio della visuale a ogni colpo, in gradi (0 = niente). Solo visivo: la
+## mira resta dove si punta.
+@export var camera_shake_degrees := 0.0
 
 @export_group("Proiettile")
 ## Scena del proiettile. Vuota = arma hitscan.

@@ -44,6 +44,15 @@ func health_of(path: String) -> HealthComponent:
 	return HealthComponent.of(level.get_node(path))
 
 
+## Tre colpi a terra davanti a sé, per le scie viste dagli altri.
+func fire_at_floor(player: FpsController) -> void:
+	for i in 3:
+		await wait_seconds(0.2)
+		player._weapon._cooldown = 0.0
+		player._weapon._ammo[player._weapon.current_slot()] = 30
+		player._weapon.fire(player._head.global_position, aim(player, player.global_position + Vector3(0, 0, -3)), [player.get_rid()])
+
+
 func aim(player: FpsController, target: Vector3) -> Vector3:
 	return (target - player._head.global_position).normalized()
 
@@ -104,8 +113,11 @@ func run_host(players: Node) -> void:
 	var numbers_before: int = added.DamageNumber
 	var hit := await wait_until(func(): return near.current < near.max_health, 20.0)
 	check("il colpo del client danneggia il manichino sull'host", hit and is_equal_approx(near.current, 88.0), "vita=%.0f" % near.current)
-	await wait_seconds(0.3)
-	check("l'host vede la scia del colpo del client", added.Tracer >= 1, "scie=%d" % added.Tracer)
+	# Le scie viaggiano come pacchetti non garantiti (ENet può scartarne qualcuno,
+	# soprattutto appena connessi e con il PC sotto carico): il client spara
+	# altri tre colpi a terra, e ne basta una.
+	var seen := await wait_until(func(): return added.Tracer >= 1, 3.0)
+	check("l'host vede le scie dei colpi del client", seen, "scie=%d" % added.Tracer)
 	check("l'host non vede numeri per i colpi del client", added.DamageNumber == numbers_before, "numeri=%d" % (added.DamageNumber - numbers_before))
 
 	# 2) L'host spara al manichino a metà: lui vede il suo numero.
@@ -116,6 +128,7 @@ func run_host(players: Node) -> void:
 	me._weapon.fire(me._head.global_position, aim(me, mid.get_parent().global_position + Vector3.UP), [me.get_rid()])
 	check("il colpo dell'host danneggia il manichino", is_equal_approx(mid.current, 88.0), "vita=%.0f" % mid.current)
 	check("l'host vede il numero del suo colpo", added.DamageNumber == numbers_before + 1)
+	await fire_at_floor(me)
 
 	# 3) Il client lancia una granata: il proiettile vero è quello dell'host.
 	var boom := await wait_until(func(): return far.current < far.max_health, 20.0)
@@ -182,6 +195,7 @@ func run_client(players: Node) -> void:
 	check("compare il numero del danno", added.DamageNumber == 1, "numeri=%d" % added.DamageNumber)
 	ok = await wait_until(func(): return is_equal_approx(near.current, 88.0), 3.0)
 	check("la vita del manichino arriva dall'host", ok, "vita=%.0f" % near.current)
+	await fire_at_floor(me)
 
 	# 2) L'host spara al manichino a metà: niente numeri per noi, ma la vita cala.
 	var numbers_before: int = added.DamageNumber
@@ -189,7 +203,9 @@ func run_client(players: Node) -> void:
 	ok = await wait_until(func(): return mid.current < mid.max_health, 20.0)
 	await wait_seconds(0.3)
 	check("si vede il colpo dell'host sul manichino", ok and is_equal_approx(mid.current, 88.0), "vita=%.0f" % mid.current)
-	check("si vede la scia del colpo dell'host", added.Tracer > tracers_before)
+	# Come sopra: l'host spara altri tre colpi a terra, ne basta una scia.
+	var seen := await wait_until(func(): return added.Tracer > tracers_before, 3.0)
+	check("si vedono le scie dei colpi dell'host", seen)
 	check("nessun numero per i colpi degli altri", added.DamageNumber == numbers_before)
 
 	# 3) Granata sul manichino lontano.
@@ -203,7 +219,8 @@ func run_client(players: Node) -> void:
 	check("l'host conferma il danno della granata", ok, str(confirmed))
 	ok = await wait_until(func(): return far.current < far.max_health, 3.0)
 	check("la vita del manichino colpito arriva dall'host", ok, "vita=%.0f" % far.current)
-	check("si vede l'esplosione", added.ExplosionEffect >= 1)
+	ok = await wait_until(func(): return added.ExplosionEffect >= 1, 2.0)
+	check("si vede l'esplosione", ok)
 	me._weapon.equip(0)
 
 	# 4) L'host ci manda a terra, poi ci rianima.

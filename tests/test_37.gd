@@ -8,6 +8,20 @@ var p: FpsController
 var weapon: Weapon
 
 
+## Un pezzo del modello della Magnum in prima persona.
+func part(path: String) -> Node3D:
+	return vm().get_node("Model/Magnum/" + path) as Node3D
+
+
+## Le camere con la cartuccia visibile (bit 0 = camera 0).
+func chambers() -> int:
+	var mask := 0
+	for i in 6:
+		if part("Gru/Tamburo/Bossolo%d" % i).visible:
+			mask |= 1 << i
+	return mask
+
+
 func check(name: String, ok: bool, info: String = "") -> void:
 	print(("PASS " if ok else "FAIL ") + name + "  " + info)
 	if not ok: failures += 1
@@ -169,11 +183,14 @@ func test_viewmodel() -> void:
 	weapon.equip(1)
 	await frames(2)
 	check("in mano il modello animato", vm() != null and weapon._model_animates())
+	check("presa in mano: animazione Estrazione", vm()._anim.current_animation == "Estrazione", vm()._anim.current_animation)
 	check("accensione: i LED partono spenti", drum() != 63, str(drum()))
 	await seconds(0.6)
 	check("poi tutti e sei accesi, a riposo", drum() == 63 and top() == 63 and vm()._anim.current_animation == "Riposo",
 			"%d %d %s" % [drum(), top(), vm()._anim.current_animation])
 	check("riposo in ciclo", vm()._anim.get_animation("Riposo").loop_mode == Animation.LOOP_LINEAR)
+	check("sei cartucce nei fori", chambers() == 63, str(chambers()))
+	check("tamburo alla sua scala", is_equal_approx(snappedf(part("Gru/Tamburo").scale.x, 0.001), 0.95), str(part("Gru/Tamburo").scale))
 
 	move_to(Vector3(0, 0.1, -2), 0.0)
 	await frames(2)
@@ -182,9 +199,14 @@ func test_viewmodel() -> void:
 	check("sparo: animazione Sparo", vm()._anim.current_animation == "Sparo")
 	check("la camera in alto si spegne, il tamburo gira con le altre 5", drum() == 0b111110, "%s" % String.num_int64(drum(), 2))
 	check("in cima ne restano 5 (si spegne quello davanti)", top() == 0b111110, "%s" % String.num_int64(top(), 2))
+	check("il foro della camera sparata resta vuoto", chambers() == 0b111110, "%s" % String.num_int64(chambers(), 2))
+	await frames(10)
+	check("salta via un bossolo", part("Espulso").scale.x > 1.0, str(part("Espulso").scale))
 	var finished := await wait_until(func(): return vm()._anim.current_animation == "Riposo", 1.0)
 	check("lo sparo finisce prima del colpo successivo (0,67 s)", finished)
 	check("tamburo di nuovo a zero: le 5 cariche ripartono dall'alto", drum() == 0b011111, "%s" % String.num_int64(drum(), 2))
+	check("il foro vuoto segue il tamburo", chambers() == 0b011111, "%s" % String.num_int64(chambers(), 2))
+	check("il bossolo espulso sparisce", part("Espulso").scale.x < 0.01, str(part("Espulso").scale))
 
 	# Fino all'ultimo colpo: la striscia lampeggia.
 	for i in 4:
@@ -210,6 +232,10 @@ func test_viewmodel() -> void:
 	await wait_until(func(): return not weapon.is_reloading(), 4.0)
 	var reload_done := Time.get_ticks_msec()
 	await wait_until(func(): return vm()._anim.current_animation == "Riposo", 2.0)
+	await frames(2)
+	check("dopo la ricarica sei cartucce nei fori", weapon.ammo() == 6 and chambers() == 63, "%d %d" % [weapon.ammo(), chambers()])
+	check("Riposo rimette a posto cartucce e caricatore", part("Gru/Tamburo/Cartucce").scale.x < 0.01 and part("Gru/Tamburo/Caricatore").scale.x < 0.01 \
+			and part("Gru/Tamburo/Bossolo0").scale.x > 0.9, "%f %f" % [part("Gru/Tamburo/Cartucce").scale.x, part("Gru/Tamburo/Bossolo0").scale.x])
 	var anim_done := Time.get_ticks_msec()
 	check("animazione e ricarica finiscono insieme", absi(anim_done - reload_done) < 150,
 			"%d ms di scarto" % (anim_done - reload_done))
@@ -259,3 +285,17 @@ func test_viewmodel() -> void:
 	var given := instance_from_id(crate._pickup_id) as WeaponPickup
 	check("e dà la Magnum, senza spendere", crate.is_open and given != null and given.spec == ["magnum"] \
 			and p.inventory().money == money)
+	# Tremolio della visuale a ogni sparo, che si spegne da solo; arma a terra più piccola.
+	weapon.equip(1)
+	await seconds(0.8)
+	p._shake = 0.0
+	shoot(Vector3(0, 1, -30))
+	await frames(1)
+	check("sparando la visuale trema", p._shake > deg_to_rad(0.5), "%.2f°" % rad_to_deg(p._shake))
+	await seconds(0.4)
+	check("e il tremolio si spegne", p._shake < deg_to_rad(0.05), "%.3f°" % rad_to_deg(p._shake))
+	var big := PickupReplicator.of(level).spawn_pickup(["magnum"], Vector3(-5, 1, 5))
+	var small := PickupReplicator.of(level).spawn_pickup(["pistol"], Vector3(-6, 1, 5))
+	await frames(2)
+	check("a terra la Magnum è ridotta a metà", is_equal_approx(big.get_node("ModelPivot").scale.x, 1.2) \
+			and is_equal_approx(small.get_node("ModelPivot").scale.x, 2.4), "%.2f %.2f" % [big.get_node("ModelPivot").scale.x, small.get_node("ModelPivot").scale.x])

@@ -175,7 +175,8 @@ func test_bleed_out_and_wave_end() -> void:
 	await frames(2)
 	waves.wave_cleared.emit(1)
 	await frames(3)
-	check("a fine ondata chi è morto rinasce", buddy.is_standing() and HealthComponent.of(buddy).current == 100.0)
+	# Il premio di fine ondata è un oggetto a caso: con la Felpa la vita massima sale.
+	check("a fine ondata chi è morto rinasce, con la vita piena", buddy.is_standing() 			and HealthComponent.of(buddy).current == HealthComponent.of(buddy).max_health)
 	check("vicino a un compagno", buddy.global_position.distance_to(p.global_position) < 2.0,
 			"%.1f m" % buddy.global_position.distance_to(p.global_position))
 	knock_down(buddy)

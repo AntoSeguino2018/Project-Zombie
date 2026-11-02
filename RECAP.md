@@ -128,7 +128,7 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 
   A ogni passo si rilancia tutto e si aggiunge un `test_3x` (e se serve un `net_*`) per il passo nuovo.
 - **Script lunghi da lanciare a mano:** `waves_complex.gd` (10 ondate nel Complesso, segnala zombie incastrati) e `bench_items_win.gd` (FPS in finestra con molti oggetti, senza `--headless`).
-- **Fallimento saltuario noto:** in `net_combat` ogni tanto fallisce il controllo sulla scia del colpo dell'altro giocatore. Le scie viaggiano come RPC non garantite; prima erano anche "ordinate" e venivano scartate se arrivava prima un pacchetto più recente: da quando sono `unreliable` semplici succede di rado (1 volta su 17 nelle prove). Rilanciato passa; è un effetto solo visivo.
+- **Scie e pacchetti non garantiti:** le scie degli spari altrui viaggiano come RPC `unreliable`; ENet può scartarne qualcuna, soprattutto appena connessi e con il PC sotto carico (succedeva nella batteria completa). È accettabile, perché è solo visivo, ma un test non deve contare su una singola scia: `net_combat` ora fa sparare tre colpi in più e chiede di vederne almeno una, e aspetta l'esplosione invece di controllarla in un istante preciso.
 
 ## 8. Direzione artistica e modelli (stato della discussione)
 
@@ -160,3 +160,10 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
   - errori all'importazione per le parti con scala 0 (si corregge in Blender);
   - nella ricarica il caricatore compare dal nulla e passa vicino alla camera;
   - l'arma a terra è troppo grande (circa 80 cm).
+
+**Aggiornamento Magnum (2 novembre 2026, sera):** tamburo con fori veri, sparo più pesante con bossolo espulso, clip `Estrazione` e difetti di Blender corretti. I dati aggiornati sono in `docs/armi/magnum.md`, che vale più di questa sezione se i numeri non coincidono. Copia del modello precedente: `blender/weapons/magnum_prima_dei_fori.blend`.
+
+**Nuovo modello in gioco (2 novembre 2026, notte):**
+- **Fatto:** importato senza errori; batteria completa verde; aggiunti in `WeaponData` il tremolio della visuale (`camera_shake_degrees`) e la scala dell'arma a terra (`pickup_scale`).
+- **Bossolo espulso:** volava all'indietro verso la camera e in prima persona sembrava enorme. Corretto in Blender e riesportato: ora esce a destra e ricade fuori dall'inquadratura (dettagli nella scheda, §2, "Corretti").
+- **Difetti aperti superati:** errori di importazione e arma a terra troppo grande non lo sono più.

@@ -22,6 +22,8 @@ enum Life { ALIVE, DOWNED, DEAD }
 
 const LAYER_WORLD := 1
 const LAYER_INTERACTABLE := 16
+## Rapidità con cui si spegne il tremolio della visuale dopo uno sparo.
+const SHAKE_DECAY := 14.0
 
 ## Lo stato di vita è cambiato (su tutti i partecipanti).
 signal life_changed(life: Life)
@@ -90,6 +92,9 @@ var _pitch := 0.0
 ## Spostamento della visuale dovuto al rinculo (x = alto/basso, y = lati), in
 ## radianti. Si somma alla mira e torna a zero da solo.
 var _recoil := Vector2.ZERO
+## Tremolio della visuale dopo uno sparo, in radianti: solo visivo, non sposta
+## la mira. Si spegne da solo in un attimo.
+var _shake := 0.0
 ## Spinta ricevuta (es. carica del Bestione): si somma al movimento e si esaurisce.
 var _push := Vector3.ZERO
 var _spawn_transform: Transform3D
@@ -172,6 +177,7 @@ func _ready() -> void:
 	_visor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	_name_tag.visible = false
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
+	_weapon.fired.connect(func(): _shake = maxf(_shake, deg_to_rad(_weapon.data.camera_shake_degrees)))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_hud.bind_weapon(_weapon)
 	_hud.bind_inventory(_inventory)
@@ -209,6 +215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_recoil = _recoil.lerp(Vector2.ZERO, 1.0 - exp(-_weapon.data.recoil_recovery * delta))
+	_shake *= exp(-SHAKE_DECAY * delta)
 	var blend_target := {Life.ALIVE: 0.0, Life.DOWNED: 0.7, Life.DEAD: 1.0}[life] as float
 	_death_blend = move_toward(_death_blend, blend_target, delta / 0.4)
 	_update_camera()
@@ -696,6 +703,9 @@ func _update_camera() -> void:
 		var t := smoothstep(0.0, 1.0, _death_blend)
 		eye.y -= death_camera_drop * t
 		aim = aim * Basis(Vector3.BACK, deg_to_rad(25.0) * clampf((_death_blend - 0.7) / 0.3, 0.0, 1.0))
+	if _shake > 0.0001:
+		aim = aim * Basis.from_euler(Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0),
+				randf_range(-1.5, 1.5)) * _shake)
 	_camera.global_transform = Transform3D(aim, eye)
 
 

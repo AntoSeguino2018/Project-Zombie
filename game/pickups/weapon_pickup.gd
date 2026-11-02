@@ -32,6 +32,7 @@ func _ready() -> void:
 		# Il modello in prima persona punta in avanti: girato di lato si vede tutto.
 		model.rotation.y = PI / 2.0
 		_model_pivot.add_child(model)
+		_model_pivot.scale *= weapon_data.pickup_scale
 	_label.text = weapon_data.display_name
 	_label.modulate = color
 	var beam_material: StandardMaterial3D = _beam.material_override.duplicate()

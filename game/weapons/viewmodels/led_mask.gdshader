@@ -30,7 +30,7 @@ int drum_slot(vec3 p) {
 	float angle = degrees(atan(p.y, p.x));
 	// Quadratini davanti a ogni camera: la camera 0 è a 90°, poi -60° alla volta.
 	// Strisce esterne: stanno a metà tra due camere, assegnate a quella prima.
-	float first = r < 0.03 ? 90.0 : 60.0;
+	float first = r < 0.034 ? 90.0 : 60.0;
 	int slot = int(round((first - angle) / 60.0));
 	return ((slot % 6) + 6) % 6;
 }

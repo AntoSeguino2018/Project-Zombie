@@ -15,6 +15,9 @@ extends Node3D
 ## Arma e animazioni parlano tra loro con on_equip, on_fire, on_reload e
 ## on_inspect (vedi Weapon). Senza arma (es. a terra in una cassa) resta carica
 ## e a riposo. Il modello in prima persona lo vede solo chi spara: niente rete.
+##
+## Nei fori del tamburo si vedono le cartucce: quelle dei colpi rimasti. Lo sparo
+## fa saltare via un bossolo (nell'animazione) e la camera resta vuota.
 
 const LED_SHADER := preload("res://game/weapons/viewmodels/led_mask.gdshader")
 const CHAMBERS := 6
@@ -42,6 +45,8 @@ var _reload_end := 0.0
 @onready var _anim: AnimationPlayer = $Model/AnimationPlayer
 @onready var _drum_leds: ShaderMaterial = _led_material($Model/Magnum/Gru/Tamburo, 2, 0)
 @onready var _frame_leds: ShaderMaterial = _led_material($Model/Magnum/Fusto, 3, 1)
+## Le cartucce dentro le camere, nello stesso ordine dei LED del tamburo.
+@onready var _chambers: Array[Node3D] = _chamber_nodes()
 
 
 func _ready() -> void:
@@ -62,7 +67,7 @@ func on_equip(weapon: Weapon) -> void:
 	_weapon = weapon
 	_boot_left = BOOT_TIME
 	_reload_queued = false
-	_play("Riposo")
+	_play("Estrazione")
 
 
 func on_fire() -> void:
@@ -108,6 +113,7 @@ func _process(delta: float) -> void:
 	var rounds := clampi(_weapon.ammo(), 0, CHAMBERS) if _weapon else CHAMBERS
 	_drum_leds.set_shader_parameter("lit_mask", _drum_mask(rounds))
 	_frame_leds.set_shader_parameter("lit_mask", _frame_mask(rounds))
+	_show_chambers(rounds)
 
 
 ## LED del tamburo: quali camere hanno il colpo, viste dal tamburo così com'è
@@ -125,6 +131,16 @@ func _drum_mask(rounds: int) -> int:
 	for i in _booting(rounds):
 		mask |= 1 << ((i + offset) % CHAMBERS)
 	return mask
+
+
+## Mostra una cartuccia solo nelle camere che hanno ancora il colpo.
+func _show_chambers(rounds: int) -> void:
+	var offset := 1 if _drum_turned else 0
+	var mask := 0
+	for i in rounds:
+		mask |= 1 << ((i + offset) % CHAMBERS)
+	for i in CHAMBERS:
+		_chambers[i].visible = (mask >> i) & 1 == 1
 
 
 ## Striscia del fusto: i colpi rimasti, che si spengono dal davanti; l'ultimo
@@ -173,6 +189,13 @@ func _last(count: int) -> int:
 
 ## Mette lo shader dei LED al posto del materiale luminoso della superficie,
 ## con gli stessi colori.
+func _chamber_nodes() -> Array[Node3D]:
+	var nodes: Array[Node3D] = []
+	for i in CHAMBERS:
+		nodes.append(get_node("Model/Magnum/Gru/Tamburo/Bossolo%d" % i) as Node3D)
+	return nodes
+
+
 func _led_material(mesh: MeshInstance3D, surface: int, led_layout: int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = LED_SHADER
