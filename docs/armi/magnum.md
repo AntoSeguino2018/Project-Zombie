@@ -110,6 +110,7 @@ Aggiornata al 2 novembre 2026.
 5. **Insidie dell'export** (vedi RECAP §6): con `NLA_TRACKS` gli oggetti animati possono restare spostati nel `.blend` dopo l'export: portare le strisce NLA al fotogramma 1, esportare, rimetterle a posto e ripristinare le posizioni di riposo prima di salvare. Serve anche `export_optimize_animation_keep_anim_object=True` con `export_optimize_animation_size=False`, altrimenti le tracce costanti di `Riposo` spariscono e non rimette a posto cartucce e bossoli.
 
 ### Corretti
+- (2 novembre 2026) Nel `.blend` (non nel gioco) Ventola, Tamburo, Gru, Cane e Lampo erano spostati: la loro posizione non è animata da nessuna clip, quindi resta quella salvata, e dopo l'export del bossolo era rimasta sbagliata. Rimessa uguale al `.glb`; anche la rotazione di `Cartucce` riportata a 0.
 - (2 novembre 2026) Tamburo che non entrava nell'arma dopo un export (vedi insidia NLA).
 - (2 novembre 2026) Tamburo con fori passanti veri e cartucce visibili.
 - (2 novembre 2026) Sparo rifatto: colpo immediato, rinculo più forte, cane che scatta e bossolo che salta via.
@@ -203,6 +204,8 @@ Aggiornata al 2 novembre 2026.
    - riportare le strisce ai fotogrammi di partenza: `Riposo` 1, `Estrazione` 70, `Sparo` 90, `Ricarica` 125, `Ispezione` 245;
    - ripristinare di nuovo le posizioni di riposo, poi salvare il `.blend`.
    - **Posizioni di riposo, in pratica:** con le strisce al loro posto, `scene.frame_set(1)` fa valutare `Riposo`; le tracce che `Riposo` non anima vanno rimesse a mano. Oggi è il caso di posizione e rotazione di `Espulso`: (0,018, 0,004, 0,042) e rotazione 0 in Blender, scala 0,001.
+   - **Posizioni mai animate:** la posizione di `Ventola`, `Tamburo`, `Gru`, `Cane` e `Lampo` e la rotazione di `Cartucce` non sono in nessuna clip, quindi valgono quelle salvate nel `.blend`. In Blender (Z in alto): `Ventola` (-0,0192, 0,165, 0,007), `Tamburo` (0,022, 0, 0,0431), `Gru` (-0,022, 0,004, -0,012), `Cane` (0, -0,084, 0,045), `Lampo` (0, 0,284, 0,052), rotazione di `Cartucce` 0.
+   - **Controllo dopo il salvataggio:** confrontare le trasformazioni degli oggetti al fotogramma 1 con i nodi del `.glb` (Y del glTF = Z di Blender, Z del glTF = -Y di Blender). Se qualcosa non torna, il `.blend` è sbagliato, non il gioco.
    - **Valore fisso del bossolo in `Riposo`:** nel `.glb` la posizione di `Espulso` in `Riposo` resta quella di fine sparo. Non si vede perché è a scala 0,001.
    - **Verifica:** dopo l'export conviene confrontare il `.glb` nuovo con una copia del precedente, traccia per traccia (con `GLTFDocument` in uno script di Godot), per essere sicuri che sia cambiato solo quello che si voleva.
 4. Controllare nel `.glb` clip, durate e posizioni dei nodi, poi lanciare `--import` e `test_37`.
