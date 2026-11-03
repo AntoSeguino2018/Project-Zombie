@@ -14,3 +14,6 @@ Thumbs.db
 
 # Log dei test automatici
 /tests/logs/
+
+# Riferimenti dei personaggi (immagini di terzi e foto di persone reali): solo in locale
+blender/personaggi/riferimenti/
