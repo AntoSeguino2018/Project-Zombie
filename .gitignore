@@ -17,3 +17,9 @@ Thumbs.db
 
 # Riferimenti dei personaggi (immagini di terzi e foto di persone reali): solo in locale
 blender/personaggi/riferimenti/
+
+# Cache di Python (gli script delle skill eseguiti da Blender)
+__pycache__/
+
+# Render di verifica dei modelli (si rifanno dagli script)
+blender/personaggi/render/

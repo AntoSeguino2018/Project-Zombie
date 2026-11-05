@@ -8,4 +8,11 @@ Copiate a mano il 3 novembre 2026, solo per questo progetto e senza modifiche, d
 niente hook, niente telemetria, nessun server MCP; gli script avviano solo Blender in locale.
 
 Per aggiornarle: riscaricare il repository, rileggere le differenze e ricopiare `skills/*` qui.
+Prima di ricopiare, controllare se queste correzioni locali servono ancora:
+
+- **5 novembre 2026, `blender-character-rigging/scripts/rig_check.py`, controllo di simmetria dei pesi.**
+  - Il problema: `verts[::passo]` dà errore in Blender 5.2 ("slice steps not supported").
+  - La correzione: il passo si applica a `list(verts)`.
+
+Problema noto, lasciato com'è: `blender-retopology-uv/scripts/auto_retopo.py` fallisce con Quadriflow quando il remesh lascia lati più corti di 0,1 mm. Il Personaggio N.1 lo aggira nel suo script `fase2_retopologia.py`.
 Le regole del progetto (scheda del personaggio, `RECAP.md`, procedure di export) hanno la precedenza su queste skill.

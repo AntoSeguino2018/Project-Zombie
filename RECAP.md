@@ -133,7 +133,8 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 ## 8. Direzione artistica e modelli (stato della discussione)
 
 - Pipeline: disegni dello sviluppatore → modelli low-poly in Blender → glTF (`.glb`) in `assets/models/` → Godot. **Blender 5.2.3 LTS è installato** (versione Steam) con l'add-on MCP ufficiale di Blender Lab.
-- Claude crea modelli e animazioni con script Python (`bpy`) tramite l'MCP, nell'app Claude: Blender deve essere aperto con il server avviato (Preferences > Add-ons > MCP, Auto Start attivo, porta 9876). La modalità senza finestra non funziona perché `BLENDER_PATH` non è impostata.
+- Claude crea modelli e animazioni con script Python (`bpy`) tramite l'MCP, nell'app Claude: Blender deve essere aperto con il server avviato (Preferences > Add-ons > MCP, Auto Start attivo, porta 9876). Lo strumento senza finestra dell'MCP non funziona perché `BLENDER_PATH` non è impostata; senza finestra si usa invece `.claude/skills/blender-core/scripts/run_in_blender.py`, che trova da solo il Blender di Steam.
+- **Skill `blender-*`** in `.claude/skills/` (dal 3 novembre 2026): procedure e script per scultura, retopologia, scheletro, vestiti, capelli, controllo qualità ed export. Il Personaggio N.1 si rifà da zero con queste ([scheda](docs/personaggi/personaggio_n1.md)).
 - **Valutazione onesta:**
   - **Bene:** moduli della mappa e oggetti di scena.
   - **Discreto:** armi, meglio con un disegno di lato.
