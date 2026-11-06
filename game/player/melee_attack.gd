@@ -54,6 +54,9 @@ var _fist_rest := Vector3.ZERO
 func _ready() -> void:
 	_fist_rest = _fist.position
 	_fist.visible = false
+	# Il braccio sta sulla camera: la sua ombra cadrebbe nel mondo dal punto sbagliato.
+	for node in _fist.find_children("*", "GeometryInstance3D"):
+		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _physics_process(delta: float) -> void:

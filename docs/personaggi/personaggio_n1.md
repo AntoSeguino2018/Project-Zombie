@@ -123,11 +123,13 @@ Ogni fase si chiude con `qa_check.py` superato, le immagini di fronte, di lato e
 - `fase6_viso.py`: colora le zone del viso sul corpo e rifà la collana;
 - `fase7_capelli.py`: colora il cuoio capelluto sul corpo e rifà capelli e pelliccia. Va rilanciato dopo ogni `fase6_viso.py`, che rifà i materiali del corpo;
 - `fase8_colori.py [-- --viso bordi|protetto|sfaccettato --prova]`: colori definitivi e modificatori di sfaccettatura. Va rilanciato dopo le fasi che rifanno corpo o vestiti, perché quelle tolgono i modificatori;
-- `fase9_animazioni.py`: rifà le clip sul rig di controllo, le cuoce sullo scheletro da gioco e controlla i cicli. Va rilanciato dopo ogni `fase3_scheletro.py`, che rifà i rig.
+- `fase9_animazioni.py`: rifà le clip sul rig di controllo, le cuoce sullo scheletro da gioco e controlla i cicli. Va rilanciato dopo ogni `fase3_scheletro.py`, che rifà i rig;
+- `fase10_export.py`: esporta per Godot `assets/models/characters/personaggio_n1.glb` e `personaggio_n1_pugno.glb`. Lavora solo in memoria e non salva il `.blend`: si rilancia dopo qualunque altra fase.
 
-**Ordine di rilancio:** ogni fase lavora su quello che producono le precedenti. Se cambia il corpo (fase 1 o 2), si rilancia tutto in fila: 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Gli script danno sempre lo stesso risultato e la catena intera dura circa un minuto.
+**Ordine di rilancio:** ogni fase lavora su quello che producono le precedenti. Se cambia il corpo (fase 1 o 2), si rilancia tutto in fila: 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10. Gli script danno sempre lo stesso risultato e la catena intera dura circa un minuto.
 - `verifica_pose.py -- --out FILE.png`: foglio con le pose di prova (fotogrammi 1, 10, 20, 30, 40, 50) di fronte e di tre quarti;
-- `verifica_bozza.py -- --out CARTELLA`: render ortogonale allineato pixel per pixel alla bozza, sovrapposto in trasparenza, di fronte e di profilo.
+- `verifica_bozza.py -- --out CARTELLA`: render ortogonale allineato pixel per pixel alla bozza, sovrapposto in trasparenza, di fronte e di profilo;
+- `verifica_export.py -- --out FILE.png` (senza `--blend`): reimporta i due `.glb` in una scena vuota e li rende con i colori della texture, il personaggio in cinque clip e il pugno da sei lati.
 
 I render di verifica vanno in `blender/personaggi/render/` (esclusa da git).
 
@@ -554,7 +556,44 @@ La storia delle revisioni è nella cronologia git di questo file.
 
 - (6 novembre 2026) Fase 9 approvata.
 
+- (6 novembre 2026) **Fase 10 fatta (in Godot)**, in attesa di approvazione. Scelte con lo sviluppatore: in prima persona solo il pugno, e il colore del giocatore solo sul nome.
+  - **Export** (`fase10_export.py`, impostazioni del preset `godot` della skill `blender-export-pipelines`). Tutto avviene in memoria, senza salvare il `.blend`:
+    - ogni oggetto diventa la sua mesh valutata senza l'Armature, quindi maschere, sfaccettatura, spessori e smussi sono applicati, i pesi restano, e la pelle coperta dai vestiti sparisce davvero;
+    - le 18 mesh si uniscono in `N1_Personaggio`, legata a `GAME_RIG_N1_Corpo`;
+    - i vincoli dello scheletro da gioco verso il rig di controllo si spengono, e le azioni cotte prendono il nome della clip;
+    - lo script della skill (`export_asset.run`) non si usa direttamente perché raccoglie anche i figli dello scheletro, cioè gli oggetti originali: si usano le sue impostazioni.
+  - **Tavolozza:** i 16 materiali diventano uno solo, `M_N1`.
+    - Il colore viene da `T_N1_Tavolozza`, una texture 256 × 256 a 4 × 4 quadrati di 64 px. Ogni faccia ha tutte le UV al centro del quadrato del suo colore: senza differenze di UV dentro la faccia, la texture si legge sempre al livello pieno e i colori vicini non si mescolano.
+    - Metallo e ruvidità vengono da `T_N1_MetalloRuvido` (G = ruvidità, B = metallo, come vuole glTF).
+    - I valori sono gli stessi della fase 8. In Godot le due texture sono senza compressione (`compress/mode=0`, e `detect_3d/compress_to=0` perché non passino alla compressione video), così i colori restano esatti.
+  - **File** in `assets/models/characters/`:
+
+    | File | Cosa | Numeri |
+    |---|---|---|
+    | `personaggio_n1.glb` | il personaggio visto dagli altri | 1 mesh, 1 materiale, **14.974 triangoli**, 71 ossa, 9 clip, 2,3 MB |
+    | `personaggio_n1_pugno.glb` | avambraccio e mano sinistra a pugno, fissi | 968 triangoli, 39 cm, stesso materiale |
+
+    Le chiamate di disegno passano da circa 28 a 1 per giocatore, più l'ombra.
+  - **Pugno:** è il braccio sinistro (`N1_Braccio.L`) valutato con le dita chiuse (75°, 95° e 70° per falange, pollice 10°, 35° e 45°) e tagliato all'avambraccio. Il centro della mano è nell'origine, l'avambraccio va verso +Z di Godot (verso la camera) e il dorso è in alto.
+  - **In Godot:**
+    - `game/characters/personaggio_n1.tscn`: il `.glb` girato di 180° (in glTF guarda +Z, il giocatore guarda -Z) con lo script `player_model.gd` (classe `PlayerModel`);
+    - `PlayerModel` sceglie la clip dallo stato del `FpsController` padre: Ferma, Cammina, Corsa (da 8,5 m/s), Indietro, Sinistra/Destra secondo la direzione; Salto dopo 0,12 s in aria, partendo dallo stacco (0,25 s); ATerra a terra (ferma se non si striscia) e da morti; Rianima mentre si rianima;
+    - la velocità di riproduzione è la velocità vera divisa per quella nominale della clip, tra 0,5 e 2,5. La velocità la ricava dalla posizione, quindi vale anche per i giocatori remoti, di cui si conosce solo quella;
+    - chi rianima lo sanno chi controlla il giocatore e l'host; gli altri lo deducono da un compagno a terra vicino che si sta rialzando;
+    - `player.tscn`: la capsula e la visiera sono tolte e c'è il nodo `Body`. Il giocatore locale vede del proprio corpo solo l'ombra, come prima;
+    - il pugno (`Camera3D/Melee/Fist/Arm`) sostituisce le due scatole, senza ombra, con l'avambraccio girato di 15° verso l'esterno e 10° verso il basso.
+  - **Verifiche:**
+    - reimport in Blender (`render/fase10_export.png`): colori dalla texture giusti, clip e pugno a posto;
+    - foto in Godot con il cielo del livello di prova (`render/fase10_godot_*.png`): modello girato come il giocatore, clip, ombre, acciaio che riflette il cielo, pugno in prima persona;
+    - `tests/test_38.gd` (nuovo): una mesh e un materiale, altezza, nove clip con i cicli giusti, direzione -Z, piedi a terra, solo ombra per sé, clip per fermo, avanti, scatto, indietro, lati, salto, a terra, strisciando e rialzati, pugno;
+    - `net_combat` e `net_revive` controllano le clip invece della rotazione della capsula: a terra ATerra, rialzato no, e Rianima per chi rianima, visto da sé e dall'host.
+  - **Non fatto:** le braccia sulle armi (una presa per arma, nelle schede delle armi), l'arma in mano vista dagli altri, il busto che segue la mira in alto e in basso.
+
+- (6 novembre 2026) Fase 10 approvata: il Personaggio N.1 è finito e in gioco.
+
 ## Problemi aperti
 
-- **Materiali:** 16 materiali, quindi circa 28 chiamate di disegno. Da ridurre nella fase 10 con una tavolozza in texture e unendo le mesh.
+- **Piedi che scivolano** in gioco sui lati e all'indietro: lì si va a 7 m/s, mentre le clip sono animate a 1,1 e 2,1 m/s, e la riproduzione si ferma a 2,5 volte. Si risolve allungando il passo di quelle clip nella fase 9, oppure alzando il limite in `PlayerModel.speed_scale_range`.
+- **Gli altri non vedono l'arma** in mano al personaggio, e il busto non segue la mira in alto e in basso (in rete c'è già `sync_pitch`).
+- **Gruppi di vertici in più:** `N1_Personaggio` ha 97 gruppi senza ossa (le zone dei vestiti, `N1_Viso` e altri). L'export li ignora; si possono togliere nello script se servisse.
 - **Personaggi organici:** il `RECAP.md` li valuta il punto debole di Claude in Blender. Il viso è stilizzato a rilievi e zone di colore: se serve più carattere, un ritocco a mano sulla sorgente si propaga rilanciando le fasi 2–6.

@@ -17,25 +17,12 @@
 [ext_resource type="Shader" path="res://shared/shaders/damage_vignette.gdshader" id="11_vignette"]
 [ext_resource type="Script" path="res://game/player/melee_attack.gd" id="12_melee"]
 [ext_resource type="Script" path="res://game/run/run_inventory.gd" id="17_inventory"]
+[ext_resource type="PackedScene" path="res://game/characters/personaggio_n1.tscn" id="18_body"]
+[ext_resource type="PackedScene" uid="uid://7ucpoc5gamdw" path="res://assets/models/characters/personaggio_n1_pugno.glb" id="19_fist"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
 height = 1.8
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
-radius = 0.4
-height = 1.8
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
-albedo_color = Color(0.95, 0.55, 0.2, 1)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_visor"]
-shading_mode = 0
-albedo_color = Color(0.15, 0.9, 1, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_visor"]
-material = SubResource("StandardMaterial3D_visor")
-size = Vector3(0.5, 0.12, 0.1)
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_net"]
 properties/0/path = NodePath(".:sync_position")
@@ -47,17 +34,6 @@ properties/1/replication_mode = 1
 properties/2/path = NodePath(".:sync_pitch")
 properties/2/spawn = false
 properties/2/replication_mode = 1
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skin"]
-albedo_color = Color(0.93, 0.74, 0.6, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_fist"]
-material = SubResource("StandardMaterial3D_skin")
-size = Vector3(0.1, 0.1, 0.12)
-
-[sub_resource type="BoxMesh" id="BoxMesh_sleeve"]
-material = SubResource("StandardMaterial3D_body")
-size = Vector3(0.08, 0.08, 0.26)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
 shader = ExtResource("11_vignette")
@@ -87,14 +63,7 @@ script = ExtResource("1_ctrl")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_body")
 
-[node name="BodyMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_body")
-surface_material_override/0 = SubResource("StandardMaterial3D_body")
-
-[node name="Visor" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, -0.36)
-mesh = SubResource("BoxMesh_visor")
+[node name="Body" parent="." instance=ExtResource("18_body")]
 
 [node name="NameTag" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
@@ -137,14 +106,8 @@ damage_number_scene = ExtResource("7_damage_number")
 [node name="Fist" type="Node3D" parent="Camera3D/Melee"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.3, -0.25)
 
-[node name="Hand" type="MeshInstance3D" parent="Camera3D/Melee/Fist"]
-cast_shadow = 0
-mesh = SubResource("BoxMesh_fist")
-
-[node name="Sleeve" type="MeshInstance3D" parent="Camera3D/Melee/Fist"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.18)
-cast_shadow = 0
-mesh = SubResource("BoxMesh_sleeve")
+[node name="Arm" parent="Camera3D/Melee/Fist" instance=ExtResource("19_fist")]
+transform = Transform3D(0.9659, 0, -0.2588, -0.0449, 0.9848, -0.1677, 0.2549, 0.1736, 0.9513, 0, 0, 0)
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("9_hud")

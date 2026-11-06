@@ -114,11 +114,8 @@ var _last_reviver: FpsController
 var _progress_send_left := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si va giù.
 var _death_blend := 0.0
-## Posa da vivo del corpo, per rialzarlo alla rinascita.
-var _body_rest: Transform3D
-var _visor_rest: Transform3D
 var _name_tag_height := 0.0
-var _body_tween: Tween
+var _name_tag_tween: Tween
 ## Oggetto interagibile guardato in questo momento (null = nessuno).
 var _interact_target: Node
 ## Statistiche della run in corso, per l'HUD e la schermata di fine run.
@@ -128,8 +125,8 @@ var _base_max_health := 100.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
-@onready var _body_mesh: MeshInstance3D = $BodyMesh
-@onready var _visor: MeshInstance3D = $Visor
+## Il modello in terza persona: sceglie da sé le animazioni dallo stato del giocatore.
+@onready var _body: PlayerModel = $Body
 @onready var _name_tag: Label3D = $NameTag
 @onready var _weapon: Weapon = $Camera3D/Weapon
 @onready var _melee: MeleeAttack = $Camera3D/Melee
@@ -152,8 +149,6 @@ func _ready() -> void:
 	_spawn_transform = global_transform
 	sync_position = global_position
 	sync_yaw = _yaw
-	_body_rest = _body_mesh.transform
-	_visor_rest = _visor.transform
 	_name_tag_height = _name_tag.position.y
 	_apply_player_color()
 	_name_tag.text = display_name()
@@ -173,8 +168,7 @@ func _ready() -> void:
 		set_process_unhandled_input(false)
 		return
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
-	_body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-	_visor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	_body.set_shadow_only(true)
 	_name_tag.visible = false
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_weapon.fired.connect(func(): _shake = maxf(_shake, deg_to_rad(_weapon.data.camera_shake_degrees)))
@@ -483,11 +477,9 @@ func _follow_remote_state(delta: float) -> void:
 	rotation.y = lerp_angle(rotation.y, sync_yaw, weight)
 
 
+## Il modello è uguale per tutti: il colore del giocatore sta sul nome.
 func _apply_player_color() -> void:
 	var player_color := player_colors[(player_number - 1) % player_colors.size()]
-	var material := StandardMaterial3D.new()
-	material.albedo_color = player_color
-	_body_mesh.material_override = material
 	_name_tag.modulate = player_color.lightened(0.3)
 
 
@@ -652,18 +644,13 @@ func _on_died(_source: Node) -> void:
 
 ## Il corpo cade a terra (lo vedono gli altri; per sé resta l'ombra) e si
 ## rialza quando si torna in piedi. Il nome di chi è a terra si vede anche
-## attraverso i muri, così i compagni lo trovano.
+## attraverso i muri, così i compagni lo trovano. Il corpo lo fa cadere il
+## modello (clip ATerra, vedi PlayerModel): qui si sistema il nome.
 func _show_dead_body(down: bool, dead := false) -> void:
-	# Disteso all'indietro, con i piedi dove stava in piedi.
-	var lying := Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0.0, 0.4, 0.0))
-	if _body_tween:
-		_body_tween.kill()
-	_body_tween = create_tween().set_parallel()
-	_body_tween.tween_property(_body_mesh, "transform", lying * _body_rest if down else _body_rest, 0.35) \
-			.set_trans(Tween.TRANS_BOUNCE if down else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_body_tween.tween_property(_visor, "transform", lying * _visor_rest if down else _visor_rest, 0.35) \
-			.set_trans(Tween.TRANS_BOUNCE if down else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_body_tween.tween_property(_name_tag, "position:y", _name_tag_height - 1.2 if down else _name_tag_height, 0.35)
+	if _name_tag_tween:
+		_name_tag_tween.kill()
+	_name_tag_tween = create_tween()
+	_name_tag_tween.tween_property(_name_tag, "position:y", _name_tag_height - 1.2 if down else _name_tag_height, 0.35)
 	_name_tag.text = display_name() + ("  ·  A TERRA" if down and not dead else "")
 	_name_tag.no_depth_test = down and not dead
 	# Visto attraverso i muri ha sempre la stessa grandezza: leggibile da

@@ -30,7 +30,7 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 
 - **Motore:** Godot **4.7.2** standard (GDScript), fisica **Jolt**, interpolazione della fisica attiva. Eseguibile usato per i test: `C:\Dev\Tools\Godot\Godot_v4.7.2-stable_win64_console.exe`.
 - **Cartella:** `C:\Dev\Project-Zombie` (fuori da OneDrive di proposito). Scena iniziale: `game/ui/main_menu.tscn`.
-- **Struttura:** per funzionalità sotto `game/` (`player`, `weapons`, `combat`, `enemies`, `waves`, `run`, `items`, `boosts`, `pickups`, `levels`, `net`, `ui`); shader in `shared/shaders`; materiali greybox in `assets/materials`; generatore della mappa in `tools/`; modelli esportati in `assets/models/`; sorgenti Blender in `blender/` (ignorata da Godot con `.gdignore`); schede delle armi in `docs/armi/`.
+- **Struttura:** per funzionalità sotto `game/` (`player`, `characters`, `weapons`, `combat`, `enemies`, `waves`, `run`, `items`, `boosts`, `pickups`, `levels`, `net`, `ui`); shader in `shared/shaders`; materiali greybox in `assets/materials`; generatore della mappa in `tools/`; modelli esportati in `assets/models/`; sorgenti Blender in `blender/` (ignorata da Godot con `.gdignore`); schede delle armi in `docs/armi/`.
 - **Convenzioni:** 1 unità = 1 m; file `snake_case`, classi e nodi `PascalCase`; indentazione con tab; commenti di documentazione `##` in italiano sopra classi, export e funzioni pubbliche. **Tipi espliciti** quando il valore viene da un Variant (le inferenze da Variant danno errore). Dati di gioco come risorse `.tres` (armi, tratti, ondate, boost, oggetti) invece che numeri nel codice.
 - **Layer di fisica:** 1 Mondo, 2 Giocatori, 3 Nemici (valore 4), 4 Detriti (valore 8), 5 Interagibili (valore 16).
 
@@ -134,7 +134,7 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 
 - Pipeline: disegni dello sviluppatore → modelli low-poly in Blender → glTF (`.glb`) in `assets/models/` → Godot. **Blender 5.2.3 LTS è installato** (versione Steam) con l'add-on MCP ufficiale di Blender Lab.
 - Claude crea modelli e animazioni con script Python (`bpy`) tramite l'MCP, nell'app Claude: Blender deve essere aperto con il server avviato (Preferences > Add-ons > MCP, Auto Start attivo, porta 9876). Lo strumento senza finestra dell'MCP non funziona perché `BLENDER_PATH` non è impostata; senza finestra si usa invece `.claude/skills/blender-core/scripts/run_in_blender.py`, che trova da solo il Blender di Steam.
-- **Skill `blender-*`** in `.claude/skills/` (dal 3 novembre 2026): procedure e script per scultura, retopologia, scheletro, vestiti, capelli, controllo qualità ed export. Il Personaggio N.1 si rifà da zero con queste ([scheda](docs/personaggi/personaggio_n1.md)).
+- **Skill `blender-*`** in `.claude/skills/` (dal 3 novembre 2026): procedure e script per scultura, retopologia, scheletro, vestiti, capelli, controllo qualità ed export. Il Personaggio N.1 è rifatto da zero con queste ([scheda](docs/personaggi/personaggio_n1.md)) ed è in gioco dal 6 novembre 2026: `game/characters/personaggio_n1.tscn` sul nodo `Body` del giocatore, con le clip scelte da `PlayerModel`, e il braccio robotico come pugno in prima persona.
 - **Valutazione onesta:**
   - **Bene:** moduli della mappa e oggetti di scena.
   - **Discreto:** armi, meglio con un disegno di lato.

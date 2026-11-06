@@ -30,6 +30,11 @@ func wait_seconds(seconds: float) -> void:
 		await physics_frame
 
 
+## Clip del modello in terza persona del giocatore.
+func body_clip(player: FpsController) -> StringName:
+	return (player.get_node("Body") as PlayerModel).current_clip()
+
+
 func move_to(player: FpsController, where: Vector3, yaw := 0.0) -> void:
 	player.global_position = where
 	player.velocity = Vector3.ZERO
@@ -75,6 +80,9 @@ func run_host(players: Node) -> void:
 	var other: FpsController = players.get_children().filter(func(n): return n.name != "1")[0]
 	run.set_physics_process(true)
 	check("l'host è a terra", me.life == FpsController.Life.DOWNED)
+	# L'host sa chi lo rianima: il modello del client fa la clip Rianima.
+	var reviving := await wait_until(func(): return body_clip(other) == &"Rianima", 15.0)
+	check("l'host vede il client che lo rianima", reviving, "clip=%s" % body_clip(other))
 	var up := await wait_until(func(): return me.is_standing(), 15.0)
 	check("il client rianima l'host", up and is_equal_approx(HealthComponent.of(me).current, 40.0),
 			"vita=%.0f" % HealthComponent.of(me).current)
@@ -101,6 +109,8 @@ func run_client(players: Node) -> void:
 	var host: FpsController = players.get_node("1")
 	var seen := await wait_until(func(): return host.life == FpsController.Life.DOWNED, 3.0)
 	check("entrando si vede l'host già a terra", seen)
+	await wait_seconds(0.2)
+	check("disteso (clip ATerra)", body_clip(host) == &"ATerra", "clip=%s" % body_clip(host))
 	check("con la scritta sopra la testa", host._name_tag.text.ends_with("A TERRA"), host._name_tag.text)
 	await wait_seconds(0.5)
 	move_to(me, host.global_position + Vector3(1.5, 0, 0), PI / 2.0)
@@ -110,6 +120,7 @@ func run_client(players: Node) -> void:
 	await wait_seconds(1.5)
 	check("barra della rianimazione a metà", me._hud._revive_bar.visible and me._hud._revive_bar.value > 0.25 \
 			and me._hud._revive_bar.value < 0.75, "%.2f" % me._hud._revive_bar.value)
+	check("in ginocchio a rianimare (clip Rianima)", body_clip(me) == &"Rianima", "clip=%s" % body_clip(me))
 	var up := await wait_until(func(): return host.is_standing(), 3.0)
 	Input.action_release("interact")
 	check("l'host si rialza", up)

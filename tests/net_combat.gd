@@ -140,8 +140,8 @@ func run_host(players: Node) -> void:
 	var other_health := HealthComponent.of(other)
 	other_health.take_damage(1000.0)
 	await wait_seconds(0.6)
-	var body: MeshInstance3D = other.get_node("BodyMesh")
-	check("il giocatore a terra è disteso", absf(body.rotation.x) > 1.2 and other.life == FpsController.Life.DOWNED, "rot=%.2f" % body.rotation.x)
+	var body: PlayerModel = other.get_node("Body")
+	check("il giocatore a terra è disteso", body.current_clip() == &"ATerra" and other.life == FpsController.Life.DOWNED, "clip=%s" % body.current_clip())
 	# L'host lo rianima tenendo premuto E.
 	move_to(me, other.global_position + Vector3(1.2, 0, 0))
 	Input.action_press("interact")
@@ -149,7 +149,7 @@ func run_host(players: Node) -> void:
 	Input.action_release("interact")
 	check("l'host lo rianima in 3 s, con il 40% della vita", revived and is_equal_approx(other_health.current, 40.0), "vita=%.0f" % other_health.current)
 	await wait_seconds(0.6)
-	check("e si rialza", absf(body.rotation.x) < 0.05, "rot=%.2f" % body.rotation.x)
+	check("e si rialza", body.current_clip() != &"ATerra", "clip=%s" % body.current_clip())
 	move_to(me, Vector3(0, 0.1, 0))
 
 	# 5) Il client cade fuori dal livello: l'host lo fa morire, rinasce a fine ondata.
