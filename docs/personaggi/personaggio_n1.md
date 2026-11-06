@@ -8,7 +8,8 @@ In `blender/personaggi/riferimenti/`. La cartella è solo locale ed esclusa da g
 - `stile_poligonale.png`: lo **stile** da seguire. Superfici a facce grandi e piatte, forme massicce, materiali leggibili.
 - `anatomia.png`: l'**anatomia** del corpo, per quanto stilizzata. Contiene i gruppi muscolari di fronte e da dietro.
 - `capelli_mullet.png` e `capelli_mullet_2.png`: il **taglio**. Sopra corti, ricci e scompigliati che ricadono in avanti; lati sfumati sopra e dietro l'orecchio; dietro mullet mosso fino alla base del collo.
-- `bozza_viso.webp`: **bozza del viso** (fonte principale per testa, collo e barba).
+- `foto_viso_fronte.webp`, `foto_viso_profilo.webp`: **foto dello sviluppatore** (6 novembre 2026). Sono il riferimento principale per viso, barba e capelli: il personaggio è lui.
+- `bozza_viso.webp`: **bozza del viso**, per testa e collo.
   - Collo largo e corto che parte da sotto le orecchie.
   - Barba corta: baffi collegati a un pizzetto pieno sul mento.
   - Lati rasati scuri, ciuffi a punta sopra e dietro le orecchie.
@@ -17,18 +18,33 @@ In `blender/personaggi/riferimenti/`. La cartella è solo locale ed esclusa da g
 
 - **Altezza:** 1,72 m.
 - **Fisico:** muscoloso, spalle larghe, proporzioni della bozza.
-- **Capelli:** come `capelli_mullet.png`. Castano scuro.
-- **Viso:** testa proporzionata, non grande né tonda. Baffi e pizzetto **solo accennati, quasi rasati**. **Niente occhi:** al loro posto una zona d'ombra voluta.
+- **Capelli:** mullet moderno, castano scuro (rivisto il 5 novembre 2026 con lo sviluppatore).
+  - Sopra un **ciuffo in avanti**.
+  - Ai lati una sfumatura corta: le orecchie restano scoperte.
+  - Dietro una **massa unica e folta**, non troppo lunga, che si ferma sopra la base del collo.
+- **Viso:** testa proporzionata, non grande né tonda. **Niente occhi:** al loro posto una zona d'ombra voluta, simmetrica.
+  - Rivisto il 5 novembre 2026 con lo sviluppatore:
+    - **naso ben piazzato**, all'italiana;
+    - **mento ben squadrato**;
+    - **baffi e pizzetto simil Tony Stark**, con il pizzetto che copre solo il mento.
+  - Rivisto sulle foto il 6 novembre 2026:
+    - pelle mediterranea chiara;
+    - sopracciglia folte e scure;
+    - **baffi pieni** sul labbro superiore fino agli angoli della bocca;
+    - **barba scura sul mento** con la striscia sotto il labbro;
+    - barba corta più chiara lungo la mascella e sotto il mento;
+    - guance pulite.
 - **Collana:** catenina con una targhetta rettangolare sul petto.
 - **Maglia:** nera, attillata.
 - **Braccia:** robotiche dalle spalle alle mani, **acciaio chiaro pulito**, senza luci.
   - Segmentate: braccio, gomito, avambraccio con una fila di bulloni esagonali lungo il lato.
   - Mani robotiche: vite a croce sul dorso, borchie sulle nocche, polsino.
-- **Spallacci:** piastre sulle spalle con il bullone centrale e le **punte**, sopra gli anelli di pelliccia.
-- **Pelliccia:** un pezzo unico agganciato al busto, con tre parti:
-  - due anelli folti che passano sotto le ascelle e circondano l'inserzione spalla-torso;
-  - un **cappuccio abbassato** che li collega dietro e scende sulle scapole;
-  - non sta sul braccio robotico.
+- **Spallacci:** piastre sulle spalle con il bullone centrale e le **punte**.
+- **Pelliccia** (rivista il 5 novembre 2026 con lo sviluppatore): folta, sul **busto**, a fare da separatore tra busto e braccia.
+  - Per lato, un cumulo simile a un anello che passa sopra il trapezio, continua dietro sulla schiena e si chiude ad anello sotto l'ascella.
+  - Molto folta sopra, poco sotto.
+  - **Non copre le spalle metalliche.**
+  - Niente cappuccio.
 - **Cintura:** fibbia con la "C". La striscia che pende davanti sulla bozza era solo un tratto: davanti i cargo sono lisci.
 - **Pantaloni:** cargo neri larghi, tasche laterali, raccolti dentro gli scarponi.
 - **Scarponi:** anfibi neri e marroni.
@@ -85,11 +101,16 @@ Ogni fase si chiude con `qa_check.py` superato, le immagini di fronte, di lato e
 - `N1_Scheletro` (fase 3):
   - `META_N1_Corpo`: il metarig Rigify, nascosto;
   - `RIG_N1_Corpo`: il rig di controllo, quello che si anima; ha l'azione `QA_Stress` con le pose di prova;
-  - `GAME_RIG_N1_Corpo`: lo scheletro da gioco, con la radice e le ossa deformanti senza prefisso `DEF-`; copia le pose del rig di controllo;
+  - `GAME_RIG_N1_Corpo`: lo scheletro da gioco, con la radice e le ossa deformanti senza prefisso `DEF-`; copia le pose del rig di controllo. Dalla fase 9 ha le clip cotte `GAME_RIG_N1_Corpo|<clip>` (a riposo è su `Ferma`), mentre le clip del rig di controllo hanno il nome semplice;
   - i widget di Rigify (collezione `WGTS_…`), esclusi dalla vista.
 - `N1_Vestiti` (fase 4): `N1_Maglia`, `N1_Cargo`, `N1_Tasca.L`/`.R`, `N1_Cintura`, `N1_Fibbia`, `N1_Scarponi`, `N1_Suole`, `N1_Lacci`, tutti legati a `GAME_RIG_N1_Corpo`.
   - Sul corpo ci sono i gruppi `Zona_*` (le zone da cui nascono i capi) e i modificatori Mask `Hidden_*`, che nascondono la pelle coperta.
   - L'attributo `N1_braccio` segna braccia e mani del corpo.
+- `N1_Braccia` (fase 5): `N1_Braccio.L`/`.R` e `N1_Spallaccio.L`/`.R`, legati a `GAME_RIG_N1_Corpo` con pesi rigidi. Le braccia del corpo sono nascoste dal Mask `Hidden_N1_Braccia`.
+- `N1_Accessori` (fase 6): `N1_Collana`, cioè catenina, targhetta e anellino in un oggetto, con i pesi copiati dal corpo.
+- `N1_Capelli` (fase 7):
+  - `N1_Capelli`: massa, ciuffo in avanti e ciocche, rigidi sull'osso della testa `spine.006`;
+  - `N1_Pelliccia`: i due anelli sul busto, con i pesi copiati dal corpo e limitati a colonna e clavicole.
 - Le altre collezioni del modello si aggiungono fase per fase.
 
 **Script** in `blender/personaggi/script/`, tutti senza finestra con `run_in_blender.py`:
@@ -98,6 +119,13 @@ Ogni fase si chiude con `qa_check.py` superato, le immagini di fronte, di lato e
 - `fase2_retopologia.py [-- --quad N --prova]`: rifà `N1_Corpo` da `N1_Corpo_alto` (con `--prova` riporta solo i triangoli per zona, senza salvare);
 - `fase3_scheletro.py`: rifà metarig, rig, pesi, scheletro da gioco e pose di prova (toglie quelli vecchi);
 - `fase4_vestiti.py`: rifà tutti i vestiti (toglie i vecchi, le maschere e i gruppi `Zona_*`/`Hidden_*`) e misura le compenetrazioni nelle pose;
+- `fase5_braccia.py`: rifà braccia e spallacci e nasconde le braccia del corpo. **Va rilanciato dopo ogni `fase4_vestiti.py`**, perché quello toglie tutte le maschere del corpo;
+- `fase6_viso.py`: colora le zone del viso sul corpo e rifà la collana;
+- `fase7_capelli.py`: colora il cuoio capelluto sul corpo e rifà capelli e pelliccia. Va rilanciato dopo ogni `fase6_viso.py`, che rifà i materiali del corpo;
+- `fase8_colori.py [-- --viso bordi|protetto|sfaccettato --prova]`: colori definitivi e modificatori di sfaccettatura. Va rilanciato dopo le fasi che rifanno corpo o vestiti, perché quelle tolgono i modificatori;
+- `fase9_animazioni.py`: rifà le clip sul rig di controllo, le cuoce sullo scheletro da gioco e controlla i cicli. Va rilanciato dopo ogni `fase3_scheletro.py`, che rifà i rig.
+
+**Ordine di rilancio:** ogni fase lavora su quello che producono le precedenti. Se cambia il corpo (fase 1 o 2), si rilancia tutto in fila: 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Gli script danno sempre lo stesso risultato e la catena intera dura circa un minuto.
 - `verifica_pose.py -- --out FILE.png`: foglio con le pose di prova (fotogrammi 1, 10, 20, 30, 40, 50) di fronte e di tre quarti;
 - `verifica_bozza.py -- --out CARTELLA`: render ortogonale allineato pixel per pixel alla bozza, sovrapposto in trasparenza, di fronte e di profilo.
 
@@ -111,7 +139,9 @@ I render di verifica vanno in `blender/personaggi/render/` (esclusa da git).
 - Poi levigatura (20 passate, viso e mani quasi fermi), muscoli come rilievi lungo la normale (pettorali, addominali, clavicole, scapole, dorsali, glutei) e simmetria da +X.
 - Nel nodo `SDF Grid Boolean` in modalità unione le griglie vanno tutte nell'ingresso multiplo "Grid": "Grid 1" serve solo alla differenza.
 
-**Mesh di gioco (fase 2):** stessa procedura di `auto_retopo.py --method quadriflow` della skill. Prima si fa una copia della sorgente con remesh a voxel, poi Quadriflow simmetrico a 5.000 quad richiesti (ne dà 4.133), poi la proiezione sulla sorgente. Le UV sono automatiche, con `uv_pack.py --method smart`: i colori sono pieni, e le UV servono a vestiti ed export.
+**Mesh di gioco (fase 2):** stessa procedura di `auto_retopo.py --method quadriflow` della skill. Prima si fa una copia della sorgente con remesh a voxel, poi Quadriflow simmetrico, poi la proiezione sulla sorgente.
+- **Quanti quad:** Quadriflow ne dà meno di quanti se ne chiedono, e quanti dipende dalla sorgente: con 5.000 richiesti ha dato 4.133 e poi 3.333, con 6.000 ne ha dati 5.129. Ora se ne chiedono 4.800, per stare a circa 4.000 sul corpo.
+- **Testa più fitta (dalla fase 6):** sopra il mento (1,465 m) la testa si suddivide una volta, quindi ogni quad diventa quattro, e i punti nuovi vanno sulla sorgente. I pochi n-gon del bordo si triangolano. Le UV sono automatiche, con `uv_pack.py --method smart`: i colori sono pieni, e le UV servono a vestiti ed export.
 - **Quadriflow e i lati corti:** Quadriflow rifiuta i lati più corti di 0,1 mm, che il remesh a volte lascia, con il messaggio "The mesh needs to be manifold and have face normals that point in a consistent direction" anche se la mesh è chiusa. Lo script fonde i vertici entro 0,3 mm prima di lanciarlo. Lo script della skill non lo fa, ed è per questo che fallisce su questo corpo.
 - **La densità è uniforme:** Quadriflow mette lo stesso numero di quad per metro quadro dappertutto. Se il viso nella fase 6 avesse bisogno di più geometria, si suddivide solo la testa.
 - **Le dita escono schiacciate:** non è un problema, perché le mani del corpo si nascondono sotto quelle robotiche. Servono solo a piazzare le ossa.
@@ -155,6 +185,26 @@ I render di verifica vanno in `blender/personaggi/render/` (esclusa da git).
 - **Corpo coperto:** è nascosto con i Mask di `garment.py`, lasciando un anello di pelle sotto i bordi. All'export quelle facce vanno cancellate.
 - **Compenetrazioni:** la misura delle pose esclude le braccia del corpo, segnate con l'attributo `N1_braccio` e destinate a sparire. Contandole, a gomiti piegati le mani entrano in maglia e cargo, ma non è compenetrazione vera.
 - **Vertici e oggetti:** l'operatore `vertex_group_smooth` non funziona fuori dalla modalità pesi, quindi la levigatura dei pesi è fatta nello script. Una copia di un oggetto nascosto nei render eredita il nascondimento: `fase2_retopologia.py` ora lo azzera.
+
+**Braccia robotiche (fase 5):** rifatte da zero con la skill `blender-hardsurface-modeling`, approccio mid-poly. Le braccia approvate della versione precedente sono rimaste in archivio, per scelta.
+- **Costruzione:** ogni pezzo segue l'osso che lo muove (testa e coda lette dallo scheletro da gioco) ed è rigido, con tutti i vertici al 100% su quell'osso. Un oggetto per braccio con un gruppo per osso (18), più uno per spallaccio.
+- **Pezzi**, in acciaio chiaro e metallo scuro:
+
+  | Pezzo | Osso | Com'è |
+  |---|---|---|
+  | Flangia | spalla (`shoulder`) | anello scuro attorno all'attacco del braccio, copre lo scalfo |
+  | Giunto | braccio (`upper_arm`) | sfera scura |
+  | Omero | braccio | due segmenti ottagonali e una fascia scura sopra il gomito |
+  | Gomito | avambraccio (`forearm`) | cerniera scura con l'asse verso l'esterno e calotta dietro |
+  | Avambraccio | avambraccio | prisma ottagonale rastremato con cinque bulloni esagonali sul lato esterno |
+  | Polsino | avambraccio | anello scuro |
+  | Mano | mano (`hand`) | palmo con la vite a croce sul dorso (un pezzo solo) e borchie sulle nocche |
+  | Dita | una falange per osso | pollice compreso |
+- **Spallaccio:** piastra esagonale di circa 16 × 14 cm, poco bombata (sfera di 16 cm di raggio, 30°), con bullone centrale e due punte, verso il collo e verso l'esterno.
+  - Sta sull'osso del braccio: legato alla spalla, alzando il braccio veniva attraversato.
+  - Lascia lo spazio per gli anelli di pelliccia.
+- **Smusso:** 1,5 mm, solo sugli spigoli oltre i 50° dei pezzi grandi, segnati con il peso di smusso. Sui pezzi piccoli (bulloni, borchie, dita, punte) collassava in facce degeneri.
+- **Scalfi della maglia** (in `fase4_vestiti.py`): il bordo è riportato sul piano del taglio, 2,5 cm prima del perno della spalla.
 
 
 Le bozze si vedono solo nelle viste allineate (frontale e laterale), semitrasparenti.
@@ -267,12 +317,244 @@ La storia delle revisioni è nella cronologia git di questo file.
     - suole con UV schiacciate e uno slot di materiale vuoto;
     - pezzi senza UV;
     - corpo nascosto nei render.
-  - **Da sistemare nella fase 5:** gli scalfi della maglia sono a dente di sega, con fessure tra maglia e spalla. Si rifiniscono quando si sa dove si attacca il braccio robotico; li copriranno spallacci e pelliccia.
+  - ~~Da sistemare nella fase 5: scalfi della maglia a dente di sega.~~ Fatto nella fase 5.
   - **Da tenere d'occhio:**
     - Accovacciato e con l'anca piegata, i cargo fanno un ginocchio tondo e voluminoso: accettabile per pantaloni larghi.
     - Lo spessore raddoppia i triangoli dei capi: se il budget stringe, si può tenere solo sui bordi visibili.
+- (5 novembre 2026) Fase 4 approvata e committata.
+- (5 novembre 2026) **Fase 5 fatta (braccia robotiche e spallacci)**, in attesa di approvazione.
+  - **Triangoli:** 1.356 per braccio e 352 per spallaccio, 3.416 in tutto, dentro i circa 3.500 previsti.
+  - **Stima del totale**, circa 13.000 triangoli, dentro il budget:
+
+    | Parte | Triangoli |
+    |---|---|
+    | Corpo visibile (testa e collo) | circa 1.000 |
+    | Vestiti sfaccettati | circa 6.000 |
+    | Braccia | 3.416 |
+    | Capelli e pelliccia, previsti | circa 3.000 |
+
+  - **`qa_check.py --profile game`** superato sulle braccia e su tutto il personaggio insieme. Restano avvisi accettati:
+    - 44 n-gon per braccio, tutti tappi piatti di pezzi rigidi, che la skill ammette;
+    - facce nascoste schiena contro schiena, cioè le basi dei bulloni affondate di 2 mm;
+    - 28 lati senza facce lasciati sul corpo dalle maschere, che spariscono quando all'export si cancellano le facce coperte.
+  - **Confronto con la bozza:** gli spallacci cadono dove li disegna la bozza, con la stessa misura.
+  - **Pose di stress:** i pezzi si muovono rigidi con le ossa e lo spallaccio segue il braccio alzato.
+  - **Compenetrazione:** con le braccia alzate escono dallo scalfo 16 vertici della spalla, fino a 3,4 cm (prima della pulizia del bordo erano 2). Stanno sotto flangia e spallaccio, e li coprirà la pelliccia.
+  - **Corretti dopo i controlli:**
+    - spallaccio troppo piccolo, che lasciava scoperti giunto e omero;
+    - spallaccio attraversato dal braccio alzato;
+    - facce degeneri dello smusso sui pezzi piccoli;
+    - croce della vite in due barre sovrapposte;
+    - tappi della cerniera del gomito complanari con la fascia;
+    - triangoli quasi doppi rispetto alla stima, per lo smusso a 35° anche sui lati degli ottagoni.
+- (5 novembre 2026) Fase 5 approvata.
+- (5 novembre 2026) **Fase 6 fatta (viso, collana e targhetta)**, in attesa di approvazione.
+  - **Tratti del viso** (`viso()` in `fase1_corpo_base.py`), come rilievi nella sorgente:
+    - arcata a tettoia;
+    - fascia degli occhi incavata;
+    - naso lungo e dritto, dalla radice a sopra la bocca;
+    - zigomi, labbra con la linea della bocca, mento squadrato.
+
+    Le ampiezze sono marcate (8–12 mm sull'arcata), perché con quad di 1 cm i rilievi di pochi millimetri spariscono.
+  - **Colori a zone sulla mesh del corpo** (`fase6_viso.py`):
+    - pelle mediterranea `M_N1_Pelle`;
+    - zona d'ombra `M_N1_Ombra` solo nelle orbite, con la radice del naso in mezzo così non sembra una benda;
+    - linea della bocca `M_N1_Bocca`;
+    - baffi collegati al pizzetto pieno `M_N1_Barba`, appena più scuri della pelle (quasi rasati).
+
+    Le zone seguono le facce, quindi i bordi sono a gradini, come il resto dello stile.
+  - **Collana:** catenina a sezione triangolare che gira attorno alla base del collo sulla pelle e scende a V sulla maglia.
+    - Si appoggia alla superficie più esterna, pelle o maglia, cercandole insieme; prima faceva gli scalini sul bordo dello scollo.
+    - Finisce sulla targhetta d'acciaio, di 2,4 × 3,6 cm con l'anellino, a 1,35 m, inclinata di 12° come il petto.
+  - **Effetto sulle altre fasi:** la testa più fitta ha cambiato il corpo, quindi le fasi 2–5 sono state rilanciate. Nella fase 4 lo scalfo si riporta sul piano solo dove il taglio è il piano: sotto l'ascella è il cilindro attorno al braccio, e portarlo sul piano scopriva una striscia di pelle. Nella fase 5 le braccia del corpo si nascondono senza l'anello di margine.
+  - **Triangoli prima della sfaccettatura:** 21.154 in tutto.
+
+    | Parte | Triangoli |
+    |---|---|
+    | Corpo visibile | 3.278 |
+    | Vestiti | 14.000 |
+    | Braccia | 3.416 |
+    | Collana | 460 |
+
+    Con la sfaccettatura a 0,45 su corpo e vestiti il totale scende a circa 11.600; con capelli e pelliccia (circa 3.000) arriva intorno a 14.600, **al limite dei 15.000**. Se il viso resta senza sfaccettatura, perché perderebbe i tratti, si arriva a circa 16.000: lo si decide nella fase 8.
+  - **`qa_check.py --profile game`** superato su tutto il personaggio. Restano gli avvisi accettati delle fasi precedenti:
+    - n-gon dei tappi piatti delle braccia;
+    - basi dei bulloni affondate;
+    - lati e vertici lasciati sul corpo dalle maschere, che spariscono all'export.
+  - **Compenetrazione del corpo nella maglia** (portata 3 cm; con 10 cm i raggi attraversavano l'ascella e davano falsi positivi):
+    - a riposo 3 vertici, sotto 1 mm;
+    - braccia alzate: 9 vertici, fino a 3 cm, sotto spallaccio e pelliccia;
+    - busto ruotato: 4 vertici, fino a 2,8 cm.
+
+- (5 novembre 2026) Fase 6 approvata.
+- (5 novembre 2026) **Fase 7 fatta (capelli e pelliccia)**, in attesa di approvazione.
+  - **Tecnica scelta: ciocche solide sfaccettate**, a colori pieni, nello stile del resto del modello. Niente carte con texture.
+  - **Cuoio capelluto** (facce della testa del corpo):
+    - castano scuro `M_N1_Capelli` sopra e sulla nuca (517 facce);
+    - ricrescita `M_N1_Rasato`, tra pelle e castano, sui lati e dietro le orecchie (246 facce).
+  - **Capelli** (1.538 triangoli), in un solo oggetto rigido sulla testa:
+    - **calotta:** piena e bitorzoluta, costruita per raggi dal centro della testa. L'attaccatura è bassa sulla fronte, alta sui lati rasati e bassissima dietro. Spessore da 1 a 2 cm, con un lato interno 2 mm sotto la pelle.
+    - **ciuffi** a sezione di rombo che si stringono fino alla punta e restano fuori dalla testa:
+      - frangia di 7 ciuffi che ricade sulla fronte con la punta che si alza;
+      - 15 ricci scompigliati sopra;
+      - 2 dietro ogni orecchio;
+    - **mullet:** 9 ciocche larghe e mosse dalla nuca alla base del collo, a lunghezze alterne, con la punta all'indietro.
+  - **Pelliccia** marrone scuro (1.102 triangoli):
+    - due anelli bitorzoluti attorno all'attacco del braccio, sotto gli spallacci (raggio 8 cm, sezione 2,6 cm), con 8 ciuffi corti ciascuno;
+    - cappuccio abbassato che segue la schiena dal collo alle scapole: bordo basso a U fino a 1,225 m al centro, rotolo spesso attorno al collo e una frangia di 7 ciuffi in basso.
+  - **Corretti dopo i render:**
+    - ciocche attaccate sul lato sbagliato della testa (mullet sul viso), per il verso del raggio rovesciato;
+    - anelli di pelliccia che uscivano sopra gli spallacci;
+    - frangia a coroncina di punte;
+    - mullet a fili sottili;
+    - lato interno del cappuccio complanare con la maglia.
+  - **`qa_check.py --profile game`** superato su tutto il personaggio (17 oggetti), con gli stessi avvisi accettati di prima.
+  - **Confronto con la bozza:** la cima dei capelli arriva a 1,72 m come nel disegno.
+  - **Triangoli:** 23.794 prima della sfaccettatura. Con la sfaccettatura a 0,45 su corpo e vestiti si stimano circa 14.300; se il viso resta senza sfaccettatura, circa 16.000.
+- (5 novembre 2026) **Fase 7 rifatta** su indicazione dello sviluppatore: i capelli diventano un mullet moderno e la pelliccia passa dalle spalle al busto. In attesa di approvazione.
+  - **Riferimenti del mullet moderno** cercati in rete ([menshairstylestoday.com](https://www.menshairstylestoday.com/modern-mullet-haircuts-men/), [thefashionisto.com](https://www.thefashionisto.com/mullet-haircut-men/)):
+    - dietro un blocco unico e tondo fatto a strati, che arriva al massimo a sfiorare il colletto;
+    - ai lati una sfumatura graduale, quasi a pelle vicino all'orecchio;
+    - sopra più lungo e mosso, con la frangia o un ciuffo in avanti.
+  - **Capelli** (1.126 triangoli, rigidi sulla testa):
+    - **massa unica** costruita per raggi dal centro della testa, con spessore variabile:
+      - circa 2,5 cm sopra;
+      - sottile dove comincia la sfumatura sui lati, con le orecchie scoperte;
+      - dietro un blocco pieno che scende fino alla nuca e si ferma sopra la base del collo.
+    - **ciuffo in avanti:** 5 ciocche grosse (larghe 4–5 cm) che escono dalla parte alta davanti, salgono e spingono in avanti. La punta resta sopra l'arcata, così non copre gli occhi. Ognuna è ruotata un po' sul suo asse, perché affiancate e parallele avevano lati coincidenti.
+    - 7 ciocche corte pettinate indietro sopra e 5 punte corte sul bordo basso del blocco.
+    - Niente più ciuffi dietro le orecchie.
+  - **Cuoio capelluto:** castano sopra e sulla nuca (600 facce), sfumatura su lati e orecchie (278 facce).
+  - **Pelliccia** (1.620 triangoli), un anello per lato appoggiato alla maglia, nel piano quasi verticale che passa sopra il trapezio e si chiude sotto l'ascella (centro a ±0,15 m, 1,32 m):
+    - la sezione è un mezzo ellisse più alto e largo sopra (fino a 6 cm) e sottile già sul petto e sulla schiena, con la base affondata di 1 cm sotto la maglia;
+    - i ciuffi sono molti sopra e pochi sotto;
+    - resta medialmente rispetto alla spalla metallica e non la copre;
+    - i pesi sono solo del busto (colonna `spine.001`–`.003` e clavicole): con il braccio alzato la pelliccia resta dov'è e fa da separatore.
+  - **`qa_check.py --profile game`** superato su tutto il personaggio. In più ci sono solo 2 coppie di facce nascoste tra maglia e base della pelliccia.
+  - **Triangoli:** 23.900 prima della sfaccettatura. Con la sfaccettatura la stima resta circa 14.300.
+
+- (5 novembre 2026) Fase 7 approvata.
+- (5 novembre 2026) **Fase 8 fatta (colori e sfaccettatura)**, in attesa di approvazione.
+  - **Tavolozza definitiva** in `fase8_colori.py`: colori scritti in sRGB e convertiti in lineare, con le regole di `blender-pbr-materials`.
+    - Il metallo è solo 0 o 1, e i metalli hanno il colore di base chiaro: acciaio sRGB 205, ruvidità 0,35.
+    - Il "metallo scuro" (bulloni, giunti, fasce, la "C") diventa **metallo verniciato scuro**, cioè non metallo (sRGB 52): un metallo con il colore di base scuro non esiste.
+    - I non metalli stanno tra sRGB 30 e 240:
+      - maglia e cargo neri sono antracite (40 e 50);
+      - l'ombra degli occhi è il minimo (30);
+      - la pelle mediterranea (196, 142, 110) sta tra i valori misurati della pelle chiara e di quella scura.
+  - **Sfaccettatura:** modificatore `Faccette` (Decimate *collapse* 0,45, simmetrico in X) su corpo, maglia, cargo, scarponi e cintura.
+    - Sul corpo va dopo le maschere e prima dell'Armature, quindi si sfaccetta solo la pelle visibile; sui vestiti va prima dello spessore.
+    - **Viso: "bordi protetti"**, scelto con lo sviluppatore dopo il confronto in `render/fase8_viso_confronto.png`. Il gruppo `N1_Viso` contiene solo i vertici della testa dove si incontrano due colori (ombra degli occhi, bocca, barba, attaccatura e sfumatura, 268 vertici). Così il viso è sfaccettato come il resto, ma le zone tengono la forma. Interamente sfaccettato, la barba spariva e la bocca diventava un triangolo; protetto per intero, il viso restava a griglia in mezzo a una testa a faccette.
+  - **Suole:** Decimate planare (Dissolve, 3°, delimitato da materiali e cuciture), da 672 a 228 triangoli. Erano quasi solo facce piatte.
+  - **Budget** (`mesh_stats.py` della skill `blender-game-optimization`): **14.747 triangoli**, dentro l'indicativo di 15.000, e 72 ossa.
+
+    | Parte | Triangoli |
+    |---|---|
+    | Corpo visibile | 1.475 |
+    | Vestiti | circa 6.300 |
+    | Braccia e spallacci | 3.416 |
+    | Capelli | 1.126 |
+    | Pelliccia | 1.620 |
+    | Collana | 460 |
+  - **Unica voce fuori budget: i materiali**, 15 contro i 6 consigliati, per circa 28 chiamate di disegno. La soluzione della skill è una tavolozza in una texture sola: un materiale, con le UV di ogni faccia sul suo quadratino di colore, e metallo e ruvidità in una seconda texture. È proposta per la fase 10, insieme all'unione delle mesh all'export.
+  - **`qa_check.py --profile game`** superato sulla versione sfaccettata, cioè quella che si esporta. In più ci sono solo avvisi accettati: 7 n-gon piatti sulle suole e poche facce nascoste.
+  - **Pose di stress:** sfaccettatura e pesi si muovono insieme.
+
+- (5 novembre 2026) **Viso rivisto** su indicazione dello sviluppatore; rilanciata tutta la catena 1 → 8.
+  - **Occhi simmetrici:** la mesh di gioco ora è esattamente simmetrica. In `fase2_retopologia.py`, dopo la suddivisione della testa, il lato +X si copia sul lato -X; gli n-gon della cucitura al centro si triangolano. Quadriflow "simmetrico" non lo era al decimo di millimetro, e le zone colorate seguono le facce.
+  - **Naso** (`naso()` in `fase1_corpo_base.py`):
+    - dorso dritto dalla radice tra gli occhi (1,594 m) alla punta (1,541 m), che esce di circa 3 cm dal viso;
+    - un riempimento dietro il dorso, la punta e le ali delle narici.
+
+    Prima usciva solo di circa 1 cm e con la sfaccettatura spariva; ora i suoi vertici sono anche nel gruppo protetto `N1_Viso`.
+  - **Mento squadrato:**
+    - le ultime righe della tabella della testa sono più larghe e più piatte (sezioni quasi rettangolari, esponente 3);
+    - il rilievo del mento è piatto davanti con i fianchi raccordati: con i fianchi netti sembrava una scatoletta attaccata.
+  - **Barba simil Stark**, colorata a zone in `fase6_viso.py`:
+    - baffi sopra il labbro;
+    - una striscia sotto il labbro;
+    - il pizzetto, che copre solo il mento;
+    - due linee sottili agli angoli della bocca.
+
+    Il colore `M_N1_Barba` è ora marrone scuro (sRGB 78, 53, 39), poco più chiaro dei capelli: con il vecchio colore, vicino alla pelle, il pizzetto spariva. La bocca è un rosso spento (112, 64, 54), con una banda un po' più alta: con facce di 1 cm una banda stretta prendeva due facce sole.
+  - **Spessore dei vestiti:** con le normali di qualità e l'offset uniforme insieme, lo spessore sulla mesh sfaccettata mandava un vertice del cargo a 224 m. In `fase8_colori.py` le normali di qualità sono tolte.
+  - **Controlli:**
+    - **`qa_check.py --profile game`** superato su tutto il personaggio;
+    - **Triangoli:** 14.804;
+    - **Maglia:** a riposo il corpo la tocca in 10 punti sul bordo dello scalfo, sopra la spalla, sotto 1 mm, sotto flangia, spallaccio e pelliccia.
+  - **Limite:** con facce di circa 1 cm, i bordi di baffi, pizzetto e bocca sono a gradini. Si possono rendere più netti suddividendo ancora la parte bassa del viso (circa +300 triangoli, il totale arriverebbe a circa 15.100).
+- (6 novembre 2026) **Seconda revisione del viso**, su indicazione dello sviluppatore: naso meno appuntito, bocca e mento in volume (prima sotto il naso c'era una parete troncata), baffi e pizzetto con spessore. Rilanciata la catena 1 → 8.
+  - **Naso:** la punta esce di circa 2,5 cm invece di 3 ed è tonda (ellissoide più largo).
+  - **Bocca e mento in volume** (`viso()`):
+    - labbro superiore e inferiore sporgenti di circa 8 mm, con la linea della bocca in mezzo;
+    - il solco sotto il labbro;
+    - il mento squadrato che sporge di 1 cm.
+  - **Densità:** la parte bassa del viso, il naso e le fasce degli occhi sono suddivisi una volta in più (quad di circa 5 mm). Le fasce degli occhi hanno così un bordo pulito: prima i triangoli al confine della zona suddivisa le sfrangiavano.
+  - **Proiezione lungo la normale:** in `fase2_retopologia.py` i vertici della testa vanno sulla sorgente lungo la normale, verso fuori o verso dentro, il più vicino. Con il punto più vicino, un vertice sul piano davanti al naso andava sul viso dietro, e la mesh di gioco perdeva 1,7 cm di naso.
+  - **Bocca:** una riga di facce scure (una linea), con le labbra color pelle. Baffi sopra il labbro superiore e striscia sotto il labbro inferiore.
+  - **Barba solida** `N1_Barba` (720 triangoli):
+    - un guscio chiuso sulle facce colorate a barba, 3,5 mm sopra la pelle e con il lato interno 1 mm sotto, così il bordo non lascia fessure;
+    - rigido sull'osso della testa;
+    - sta nella collezione `N1_Accessori` e lo rifà `fase6_viso.py`.
+  - **Fasce degli occhi:** sono intere nel gruppo protetto dalla sfaccettatura, insieme a naso e bordi dei colori.
+  - **Pelliccia:** la sezione degli anelli è aperta sotto. Il lato di chiusura stava dentro il corpo e coincideva con la maglia.
+  - **Controlli:**
+    - **`qa_check.py --profile game`** superato su tutto il personaggio (18 oggetti);
+    - **Triangoli:** 14.688.
+
+- (6 novembre 2026) **Viso e capelli sulle foto dello sviluppatore** (`riferimenti/foto_viso_*.webp`, solo in locale). Rilanciate le fasi 6 → 8.
+  - **Zone del viso** (`zona_viso()` in `fase6_viso.py`):
+    - sopracciglia folte subito sopra la fascia d'ombra;
+    - baffi pieni sul labbro superiore che scendono agli angoli della bocca;
+    - barba scura sul mento con la striscia sotto il labbro;
+    - barba corta `M_N1_Barbetta` lungo la mascella fino alle orecchie e sotto il mento, sul collo;
+    - guance pulite.
+  - **Guscio con spessore** `N1_Barba` (1.152 triangoli): 4,5 mm sui baffi, 3,5 mm su mento e striscia sotto il labbro, 2,5 mm sulle sopracciglia. La barba corta è solo colore.
+  - **Colori** (`fase8_colori.py`):
+    - pelle più chiara (sRGB 214, 166, 138);
+    - barba e sopracciglia scure (70, 48, 35);
+    - barba corta a metà tra pelle e barba (150, 112, 90).
+  - **Capelli** (`fase7_capelli.py`):
+    - le ciocche del ciuffo vanno in avanti e ricadono sulla fronte;
+    - sopra 8 ciocche corte a punte che salgono in avanti o di lato, come nella foto;
+    - lati sfumati e mullet com'erano.
+  - **Budget:** gli anelli di pelliccia passano da 28 a 24 sezioni per stare nel budget.
+  - **Controlli:**
+    - **`qa_check.py --profile game`** superato su tutto il personaggio;
+    - **Triangoli:** 14.974;
+    - **Materiali:** 16.
+
+- (6 novembre 2026) Fase 8 approvata, con il viso rivisto.
+- (6 novembre 2026) **Fase 9 fatta (animazioni)**, in attesa di approvazione. Le clip sono fatte da script (`fase9_animazioni.py`), scelta dello sviluppatore: niente mocap.
+  - **Come sono fatte:**
+    - si animano i controlli del rig `RIG_N1_Corpo`, con le gambe in IK (piedi a terra) e le braccia in FK;
+    - poi `bake_action.py` le cuoce sullo scheletro da gioco, in azioni `GAME_RIG_N1_Corpo|<clip>` (sono queste che vanno in Godot);
+    - le clip di movimento sono sul posto, senza spostamento della radice: in Godot la velocità di riproduzione si regola sulla velocità del giocatore partendo da quella nominale qui sotto;
+    - 30 fotogrammi al secondo.
+  - **Clip:**
+
+    | Clip | Fotogrammi | Ciclo | Velocità nominale | Com'è |
+    |---|---|---|---|---|
+    | `Ferma` | 60 | sì | — | respiro, testa che si guarda intorno piano |
+    | `Cammina` | 18 | sì | 3,2 m/s | passo di 0,95 m, braccia che oscillano |
+    | `Corsa` | 16 | sì | 4,7 m/s | passo di 1,25 m, busto in avanti, gomiti piegati |
+    | `Indietro` | 20 | sì | 2,1 m/s | passo corto di 0,70 m |
+    | `Sinistra`, `Destra` | 18 | sì | 1,1 m/s | corsetta laterale, il piede in volo passa davanti all'altro |
+    | `Salto` | 24 | no | — | piegamento, spinta, gambe raccolte; l'ultimo fotogramma è in volo e si tiene fino all'atterraggio |
+    | `ATerra` | 30 | sì | — | prono, sulle braccia, che striscia tirando a turno; il bacino resta vicino all'origine, dove sta la capsula |
+    | `Rianima` | 40 | sì | — | in ginocchio (il destro a terra), busto in avanti, due spinte delle mani per ciclo |
+
+    Nel gioco la camminata va a 7 m/s e lo scatto a 11 m/s (`game/player/fps_controller.gd`): la camminata si riprodurrà a circa 2,2 volte e la corsa a circa 2,3. Se a quelle velocità le gambe sembrano troppo veloci, si allunga il passo.
+  - **Ogni clip mette le chiavi su tutte le ossa che almeno una clip muove.** Prima ognuna chiavava solo le sue, e le altre tenevano la posa della clip di prima: Rianima ereditava la radice ruotata di ATerra (il personaggio era sdraiato), ATerra il busto del Salto. Lo stesso sarebbe successo in Godot passando da una clip all'altra.
+  - **Controlli** (`loop_check.py` della skill sulle azioni cotte):
+    - nessuno scatto (*pop*) in nessuna clip;
+    - nei cicli di passo restano segnalati degli *hitch* su cosce e stinchi, cioè la velocità dell'osso cambia tra la fine e l'inizio del ciclo. Sono state provate le curve cicliche, il sollevamento del piede a seno al quadrato, una chiave per fotogramma e il ciclo che parte a metà appoggio: restano, perché sono l'accelerazione vera della gamba quando il piede si stacca. Nei fogli la camminata non mostra salti;
+    - fogli di verifica in `render/fase9_*.png`.
+  - **Non verificato:** le compenetrazioni dei vestiti nelle pose delle clip (controllate solo a occhio nei fogli) e l'aspetto in Godot alle velocità vere.
+
+- (6 novembre 2026) Fase 9 approvata.
 
 ## Problemi aperti
 
-- **Stile e skill:** le skill puntano a personaggi lisci con normal map; lo stile del gioco vuole facce grandi e piatte. Va verificato già nella fase 2 che la retopologia a quad, con ombreggiatura piatta, dia l'aspetto di `stile_poligonale.png` e resti dentro il budget.
-- **Personaggi organici:** il `RECAP.md` li valuta il punto debole di Claude in Blender. Le skill aiutano su scheletro, pesi e vestiti, non sulla scultura fine: il viso potrebbe richiedere ritocchi a mano.
+- **Materiali:** 16 materiali, quindi circa 28 chiamate di disegno. Da ridurre nella fase 10 con una tavolozza in texture e unendo le mesh.
+- **Personaggi organici:** il `RECAP.md` li valuta il punto debole di Claude in Blender. Il viso è stilizzato a rilievi e zone di colore: se serve più carattere, un ritocco a mano sulla sorgente si propaga rilanciando le fasi 2–6.

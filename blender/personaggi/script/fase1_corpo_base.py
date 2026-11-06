@@ -48,10 +48,11 @@ TRONCO = [
 ]
 # Testa dal mento alla sommità (stessa forma della versione precedente, camera di gioco a 1,60).
 TESTA = [
-    (1.462, 0.012, 0.010, 0.000, 2.0),
-    (1.470, 0.030, 0.026, 0.010, 2.2),
-    (1.482, 0.044, 0.058, 0.032, 2.4),
-    (1.500, 0.056, 0.084, 0.060, 2.6),
+    # mento e mandibola squadrati (fase 6): fondo largo e piatto, sezioni quasi rettangolari
+    (1.460, 0.034, 0.060, 0.010, 3.0),
+    (1.468, 0.044, 0.076, 0.030, 3.0),
+    (1.482, 0.050, 0.080, 0.045, 2.8),
+    (1.500, 0.056, 0.086, 0.060, 2.6),
     (1.520, 0.062, 0.090, 0.082, 2.6),
     (1.545, 0.066, 0.092, 0.094, 2.6),
     (1.575, 0.070, 0.092, 0.102, 2.6),
@@ -154,9 +155,21 @@ def tronco_e_testa(bm, resto):
         # orecchie: dischi schiacciati, inclinati all'indietro
         ellissoide(bm, Vector((s * 0.071, 0.012, 1.572)), (0.010, 0.022, 0.030),
                    Matrix.Rotation(math.radians(-12), 3, "X"), segs=16, anelli=10)
-    # naso: cuneo morbido sotto la fascia degli occhi
-    ellissoide(bm, Vector((0.0, -0.083, 1.553)), (0.011, 0.013, 0.022),
-               Matrix.Rotation(math.radians(15), 3, "X"), segs=16, anelli=10)
+    naso(bm)
+
+
+def naso(bm):
+    """Naso ben piazzato, all'italiana: dorso dritto dalla radice tra gli occhi alla punta, che esce
+    di circa 2,5 cm dal viso, tonda (non appuntita), più un riempimento dietro il dorso e le ali delle narici."""
+    radice, punta = Vector((0.0, -0.088, 1.594)), Vector((0.0, -0.110, 1.542))
+    avanti = Vector((0, -1, 0))
+    loft_asse(bm, radice, punta, [(0.0, 0.007, 0.006, 2.0), (0.5, 0.009, 0.010, 2.0),
+                                  (0.85, 0.012, 0.012, 2.0), (1.0, 0.011, 0.010, 2.0)], n=16, step=0.004, up=avanti)
+    loft_asse(bm, Vector((0.0, -0.086, 1.588)), Vector((0.0, -0.098, 1.535)),
+              [(0.0, 0.008, 0.008, 2.0), (1.0, 0.012, 0.012, 2.0)], n=16, step=0.004, up=avanti)
+    ellissoide(bm, Vector((0.0, -0.106, 1.542)), (0.014, 0.012, 0.012), segs=16, anelli=10)   # punta tonda
+    for s in (1, -1):
+        ellissoide(bm, Vector((0.015 * s, -0.099, 1.537)), (0.010, 0.011, 0.009), segs=12, anelli=8)
 
 
 def gamba(bm, s):
@@ -221,6 +234,14 @@ def braccio(bm, mani, s):
 
 # ---------------------------------------------------------------- muscoli
 
+def piano(x, mezzo, bordo):
+    """1 fino a `mezzo`, poi scende a 0 in `bordo` (un rilievo piatto con i fianchi, non una campana)."""
+    if x <= mezzo:
+        return 1.0
+    t = min(1.0, (x - mezzo) / bordo)
+    return 1.0 - t * t * (3 - 2 * t)
+
+
 def bump(x, c, w):
     """Campana morbida centrata in c, larga w (0 fuori)."""
     t = (x - c) / w
@@ -255,6 +276,28 @@ def rilievi(co, nr):
     # clavicole
     if y < 0.02:
         d += 0.003 * bump(z, 1.405 - 0.10 * x, 0.012) * bump(x, 0.08, 0.07)
+    # viso (fase 6, sulla bozza del viso)
+    if z > 1.46 and y < -0.02:
+        d += viso(x, z) * min(1.0, (-0.02 - y) / 0.04)
+    return d
+
+
+def viso(x, z):
+    """Tratti del viso come rilievi lungo la normale (m), lato sinistro x >= 0.
+    Dalla bozza del viso: arcata a tettoia con sotto la fascia d'ombra degli occhi, naso lungo e
+    dritto (l'ellissoide del naso più la radice), zigomi, labbra con la linea della bocca, mento squadrato."""
+    d = 0.0
+    # ampiezze marcate: con quad di 1 cm sulla testa i rilievi di pochi millimetri spariscono
+    d += 0.012 * bump(z, 1.606, 0.012) * bump(x, 0.0, 0.072)       # arcata sopraccigliare
+    d -= 0.009 * bump(z, 1.585, 0.014) * bump(x, 0.034, 0.027)     # fascia degli occhi, incavata
+    d += 0.004 * bump(x, 0.0, 0.012) * bump(z, 1.585, 0.016)       # radice del naso
+    d += 0.006 * bump(x, 0.050, 0.020) * bump(z, 1.560, 0.016)     # zigomi
+    # bocca e mento in volume (sotto il naso non deve essere una parete piatta)
+    d += 0.008 * bump(z, 1.521, 0.007) * bump(x, 0.0, 0.026)       # labbro superiore
+    d += 0.008 * bump(z, 1.503, 0.007) * bump(x, 0.0, 0.024)       # labbro inferiore
+    d -= 0.004 * bump(z, 1.512, 0.003) * bump(x, 0.0, 0.022)       # linea della bocca
+    d -= 0.003 * bump(z, 1.491, 0.005) * bump(x, 0.0, 0.030)       # solco sotto il labbro
+    d += 0.010 * piano(x, 0.022, 0.016) * piano(abs(z - 1.475), 0.009, 0.010)   # mento squadrato e sporgente
     return d
 
 

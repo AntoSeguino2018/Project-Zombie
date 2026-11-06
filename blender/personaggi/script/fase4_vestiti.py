@@ -229,6 +229,34 @@ def bordo_scollo(g, body_bvh, scarto):
     return n
 
 
+def bordo_scalfi(g, body_bvh, scarto):
+    """Riporta il bordo degli scalfi sul piano del taglio (perpendicolare al braccio, 2,5 cm
+    prima del perno della spalla), appoggiato al corpo: senza, segue i quad a dente di sega."""
+    bm = bmesh.new()
+    bm.from_mesh(g.data)
+    n = 0
+    for v in bm.verts:
+        co = v.co
+        collo = co.z > 1.40 and abs(co.x) < 0.10
+        if not v.is_boundary or collo or co.z < 1.05:
+            continue
+        s = 1 if co.x >= 0 else -1
+        sp = Vector((SPALLA.x * s, SPALLA.y, SPALLA.z))
+        giu = Vector((math.sin(A_POSE) * s, 0, -math.cos(A_POSE)))
+        d = co - sp
+        lungo = d.dot(giu)
+        if (d - giu * lungo).length > 0.08:
+            continue          # sotto l'ascella il taglio è il cilindro attorno al braccio, non il piano
+        p = co - giu * (lungo + 0.025)
+        loc, nor, _i, _d = body_bvh.find_nearest(p)
+        if loc is not None:
+            v.co = loc + nor * scarto
+            n += 1
+    bm.to_mesh(g.data)
+    bm.free()
+    return n
+
+
 def allarga_cargo(g):
     me = g.data
     for v in me.vertices:
@@ -302,7 +330,7 @@ def tasche(rig, coll, mat):
         base = Vector((c.x + interp(CARGO_CENTRO, z) * s + r * s, c.y, z))
         n = Vector((s, 0, 0))
         u, v = Vector((0, 1, 0)), Vector((0, 0, 1))
-        scatola(bm, base, (u, v, n), (0.065, 0.065, 0.010))   # tasca: il retro entra di 1 cm, lontano dalle superfici del cargo
+        scatola(bm, base + n * 0.002, (u, v, n), (0.065, 0.065, 0.013))   # tasca: il retro entra di 11 mm, lontano dalle superfici del cargo
         scatola(bm, base + n * 0.013 + v * 0.072, (u, v, n), (0.070, 0.020, 0.008))      # patta
         bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=8, radius1=0.007, radius2=0.007, depth=0.006,
                               matrix=Matrix.Translation(base + n * 0.026 + v * 0.066) @ Matrix.Rotation(math.radians(90), 4, "Y"))
@@ -507,6 +535,7 @@ def run():
     out = {}
     maglia, r = capo(body, "Zona_Maglia", "N1_Maglia", MAGLIA, materiale("M_N1_Maglia"), rig, coll)
     out["maglia_bordo_scollo"] = bordo_scollo(maglia, bvh, MAGLIA[0])
+    out["maglia_bordo_scalfi"] = bordo_scalfi(maglia, bvh, MAGLIA[0])
     cargo, r = capo(body, "Zona_Cargo", "N1_Cargo", CARGO, materiale("M_N1_Cargo"), rig, coll)
     allarga_cargo(cargo)
     out["cargo_pesi_levigati"] = leviga_pesi(cargo, LEVIGA_PESI_CARGO)

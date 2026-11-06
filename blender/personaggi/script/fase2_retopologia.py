@@ -13,8 +13,10 @@ nascosta. UV automatiche (Smart UV Project): i colori sono pieni, le UV servono 
 --prova: non salva, riporta solo i numeri per zona.
 """
 import bpy, bmesh, json, math, os, sys
+from mathutils.bvhtree import BVHTree
 
-QUAD = 5000            # quad richiesti a Quadriflow (ne dà un po' meno)
+QUAD = 4800            # quad richiesti a Quadriflow (ne dà meno, e quanti dipende dalla sorgente: circa 4.000 sul corpo)
+TESTA_Z = 1.465        # sopra questa quota (mento) la testa si suddivide una volta
 PROGETTO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 SKILL_UV = os.path.join(PROGETTO, ".claude", "skills", "blender-retopology-uv", "scripts")
 
@@ -49,6 +51,58 @@ def zone(me):
         "gambe": t(lambda c: 0.10 <= c.z < 0.80),
         "piedi": t(lambda c: c.z < 0.10),
     }
+
+
+def proietta(bm, bvh, dentro_zona, portata=0.035):
+    """Porta i vertici della zona sulla sorgente lungo la normale (verso fuori o verso dentro, il più
+    vicino). Il punto più vicino non basta: per un vertice sul piano davanti al naso è il viso dietro,
+    non la punta, e il naso spariva."""
+    bm.normal_update()
+    for v in bm.verts:
+        if not dentro_zona(v.co):
+            continue
+        meglio = None
+        for verso in (v.normal, -v.normal):
+            loc, _n, _i, d = bvh.ray_cast(v.co, verso, portata)
+            if loc is not None and (meglio is None or d < meglio[1]):
+                meglio = (loc, d)
+        if meglio is None:
+            loc, _n, _i, _d = bvh.find_nearest(v.co)
+            meglio = (loc, 0.0) if loc is not None else None
+        if meglio is not None:
+            v.co = meglio[0]
+
+
+def suddividi_testa(low, src):
+    """Divide in quattro i quad della testa (sopra il mento) e proietta i vertici della testa
+    sul punto più vicino della sorgente fitta. Il bordo sotto la mandibola resta con qualche
+    triangolo di raccordo."""
+    bm = bmesh.new()
+    bm.from_mesh(low.data)
+    facce = [f for f in bm.faces if f.calc_center_median().z > TESTA_Z and abs(f.calc_center_median().x) < 0.13]
+    lati = list({e for f in facce for e in f.edges})
+    bmesh.ops.subdivide_edges(bm, edges=lati, cuts=1, use_grid_fill=True, quad_corner_type="INNER_VERT")
+    # il bordo della zona suddivisa lascia qualche n-gon: in una zona che si piega, meglio triangoli
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    dg = bpy.context.evaluated_depsgraph_get()
+    alto = src.evaluated_get(dg)
+    me = alto.to_mesh()
+    bvh = BVHTree.FromPolygons([v.co.copy() for v in me.vertices], [p.vertices[:] for p in me.polygons])
+    alto.to_mesh_clear()
+    proietta(bm, bvh, lambda c: c.z > TESTA_Z - 0.02 and abs(c.x) < 0.13)
+
+    # parte bassa del viso e naso (bocca, mento, baffi, pizzetto): una suddivisione in più, quad di circa 5 mm
+    def basso_o_naso(c):
+        return c.y < -0.035 and ((1.448 < c.z < 1.548 and abs(c.x) < 0.050) or (1.528 <= c.z < 1.600 and abs(c.x) < 0.030)
+                                 or (1.560 < c.z < 1.615 and abs(c.x) < 0.075))     # fasce degli occhi: bordo pulito
+    basso = [f for f in bm.faces if basso_o_naso(f.calc_center_median())]
+    lati = list({e for f in basso for e in f.edges})
+    bmesh.ops.subdivide_edges(bm, edges=lati, cuts=1, use_grid_fill=True, quad_corner_type="INNER_VERT")
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    proietta(bm, bvh, lambda c: 1.44 < c.z < 1.625 and abs(c.x) < 0.085 and c.y < -0.03)
+    bm.to_mesh(low.data)
+    bm.free()
+    return len(facce) + len(basso)
 
 
 def run():
@@ -100,6 +154,20 @@ def run():
     sw.use_negative_direction = sw.use_positive_direction = True
     applica(low)
 
+    # testa più fitta per il viso (fase 6): una suddivisione, poi i punti nuovi sulla sorgente.
+    # Quadriflow ha la stessa densità dappertutto: con quad di 2 cm il naso sarebbe una faccia sola.
+    out_testa = suddividi_testa(low, src)
+
+    # simmetria esatta: il lato +X copiato sul lato -X. Quadriflow simmetrico non lo è al decimo di
+    # millimetro, e le zone colorate del viso (fase 6) seguono le facce: senza, gli occhi venivano diversi.
+    bm = bmesh.new()
+    bm.from_mesh(low.data)
+    bmesh.ops.symmetrize(bm, input=bm.verts[:] + bm.edges[:] + bm.faces[:], direction="X", dist=2e-4)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])   # n-gon della cucitura al centro
+    bm.to_mesh(low.data)
+    bm.free()
+
     # suole sul pavimento dopo la proiezione
     for v in low.data.vertices:
         if v.co.z < 0.0:
@@ -113,6 +181,7 @@ def run():
 
     numeri = {"quad_richiesti": quad, "facce": len(low.data.polygons),
               "non_quad": sum(1 for p in low.data.polygons if len(p.vertices) != 4),
+              "testa_suddivisa": out_testa,
               "zone": zone(low.data), "dimensioni": [round(d, 3) for d in low.dimensions]}
     if prova:
         return {"ok": True, "prova": True, **numeri}
