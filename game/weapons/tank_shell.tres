@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/weapon_data.gd" id="1_data"]
+[ext_resource type="PackedScene" path="res://game/weapons/projectiles/tank_shell.tscn" id="2_shell"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Proiettile da carro armato"
+feminine = false
+damage = 250.0
+projectile_scene = ExtResource("2_shell")
+projectile_speed = 45.0
+projectile_gravity = 1.0
+projectile_lifetime = 3.5
+explosion_radius = 6.0
+explosion_damage = 350.0
+explosion_knockback = 15.0

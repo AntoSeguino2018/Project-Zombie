@@ -154,6 +154,27 @@ func _update_boosts() -> void:
 ".join(lines)
 
 
+## Arma bianca in mano: il suo nome, niente munizioni.
+func show_melee(weapon: MeleeWeaponData) -> void:
+	_weapon_label.text = weapon.display_name
+	_weapon_label.modulate = MeleeCatalog.COLOR
+	_ammo_display.visible = false
+
+
+## Proiettile da carro armato in spalla: mani occupate.
+func show_shell() -> void:
+	_weapon_label.text = "Proiettile in spalla"
+	_weapon_label.modulate = Color(1.0, 0.8, 0.4)
+	_ammo_display.visible = false
+
+
+## Di nuovo l'arma da fuoco in mano.
+func show_guns(weapon: Weapon) -> void:
+	_ammo_display.visible = crosshair.visible
+	if weapon.data:
+		_show_weapon_name(weapon.data)
+
+
 ## Nome dell'arma in mano, del colore della sua rarità.
 func _show_weapon_name(data: WeaponData) -> void:
 	_weapon_label.text = data.display_name

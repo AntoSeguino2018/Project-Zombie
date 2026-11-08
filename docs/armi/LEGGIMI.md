@@ -6,7 +6,7 @@ Una scheda per ogni arma creata, a partire dalla Magnum. Ogni scheda raccoglie d
 |---|---|---|---|
 | Magnum | sbroccata | vero (Blender) | [magnum.md](magnum.md) |
 
-Le armi di base (pistola, carabina, fucile a pompa, mitraglietta, lanciagranate) sono ancora fatte di cubetti e non hanno una scheda; la avranno quando arriverà il loro modello vero.
+Le armi di base (pistola, carabina, fucile a pompa, mitraglietta, lanciagranate) sono ancora fatte di cubetti e non hanno una scheda; la avranno quando arriverà il loro modello vero. Lo stesso vale per le armi bianche del terzo slot (martello da fabbro, martellone, katana, dal passo 3.9): i loro numeri sono nei `.tres` in `game/weapons/melee/` e riassunti nella ROADMAP.
 
 ## Come è fatta una scheda
 

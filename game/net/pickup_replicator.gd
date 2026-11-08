@@ -2,11 +2,12 @@ class_name PickupReplicator
 extends MultiplayerSpawner
 ## Fa comparire le cose a terra su tutti i partecipanti: armi (uscite dalle
 ## casse o lasciate da chi ne ha raccolta un'altra) e oggetti passivi lasciati
-## dagli zombie. Solo l'host le crea (spawn_pickup, spawn_item) e le toglie
+## dagli zombie, e proiettili da carro armato posati. Solo l'host le crea
+## (spawn_pickup, spawn_item, spawn_shell) e le toglie
 ## quando qualcuno le prende; chi entra a partita iniziata le riceve già al
 ## loro posto.
 
-enum Kind { WEAPON, ITEM }
+enum Kind { WEAPON, ITEM, SHELL }
 
 @export var pickup_scene: PackedScene
 @export var item_scene: PackedScene
@@ -36,7 +37,18 @@ func spawn_item(item: PassiveItem, position: Vector3) -> ItemPickup:
 	return spawn([Kind.ITEM, item.resource_path, position, _next_id])
 
 
+## Sull'host: mette a terra un proiettile da carro armato in position.
+func spawn_shell(position: Vector3) -> TankShellPickup:
+	_next_id += 1
+	return spawn([Kind.SHELL, null, position, _next_id])
+
+
 func _create_pickup(data: Array) -> Node:
+	if data[0] == Kind.SHELL:
+		var shell := TankShellPickup.new()
+		shell.name = "Shell%d" % data[3]
+		shell.position = data[2]
+		return shell
 	if data[0] == Kind.ITEM:
 		var item_pickup: ItemPickup = item_scene.instantiate()
 		item_pickup.name = "Item%d" % data[3]

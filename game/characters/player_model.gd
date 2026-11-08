@@ -20,6 +20,8 @@ const NOMINAL_SPEED := {&"Cammina": 3.17, &"Corsa": 4.69, &"Indietro": 2.1,
 ## Punto del Salto in cui i piedi lasciano terra: prima c'è il piegamento, che
 ## in gioco avviene già in aria.
 const JUMP_TAKEOFF := 0.25
+## Dove sta il proiettile in spalla: sulla spalla destra, punta in avanti (-Z).
+const SHELL_ON_SHOULDER := Vector3(0.24, 1.52, 0.05)
 
 ## Tempo di passaggio da una clip all'altra, in secondi.
 @export var blend_time := 0.15
@@ -41,6 +43,8 @@ var _clip := &""
 var _last_position := Vector3.ZERO
 var _velocity := Vector3.ZERO
 var _air_time := 0.0
+var _shell: Node3D
+var _shadow_only := false
 
 
 func _ready() -> void:
@@ -58,9 +62,27 @@ func current_clip() -> StringName:
 	return _clip
 
 
+## Il proiettile da carro armato sulla spalla destra (lo vedono gli altri).
+func set_shell(on: bool) -> void:
+	if on and _shell == null:
+		_shell = TankShellPickup.build_model()
+		_shell.position = SHELL_ON_SHOULDER
+		add_child(_shell)
+		# Anche il proiettile segue la regola del corpo (per sé solo ombra).
+		set_shadow_only(_shadow_only)
+	if _shell:
+		_shell.visible = on
+
+
+## Il proiettile in spalla, se c'è.
+func shell_visible() -> bool:
+	return _shell != null and _shell.visible
+
+
 ## Solo ombra (il giocatore locale non vede il proprio corpo) o visibile.
 func set_shadow_only(shadow_only: bool) -> void:
-	for node in find_children("*", "GeometryInstance3D"):
+	_shadow_only = shadow_only
+	for node in find_children("*", "GeometryInstance3D", true, false):
 		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY \
 				if shadow_only else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 

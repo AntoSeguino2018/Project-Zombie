@@ -127,6 +127,7 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 - **Armi bianche** in un **terzo slot** dedicato (tasto 3), oltre alle due armi da fuoco: **martello piccolo** da fabbro, **martellone** a due mani (molto basilare) e **katana**. Si comprano **appese al muro** in punti fissi della mappa, e ogni tanto escono anche dalle casse.
 - **Proiettili da carro armato** sparsi per la mappa, vicino ai mezzi dell'esercito e nei laboratori. Si portano **in spalla**.
 - **La combo:** se un giocatore ha un proiettile in spalla e un compagno lo colpisce con il martello (piccolo o grande), il proiettile parte a razzo come un colpo di bazooka, **nella direzione in cui guarda chi lo porta**. Chi porta mira, chi martella fa da grilletto.
+- 💡 Idea per dopo: anche un proiettile posato a terra colpito col martello potrebbe partire, nella direzione della martellata (così servirebbe anche giocando da soli).
 
 ## Boost: le macchinette
 ✅ Le macchinette del caffè danno i boost (nascono dai coffee break).

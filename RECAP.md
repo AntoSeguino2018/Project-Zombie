@@ -103,9 +103,13 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
   - poi si resiste 60 secondi, l'elicottero atterra e si sale con E (`FpsController.host_board`: si resta seduti e gli zombie ignorano chi è a bordo);
   - quando riparte, `RunManager.host_win` chiude la run con il riepilogo (salvati, ondata, uccisioni, tempo) e si riparte da capo.
 
+- **3.9 Armi bianche nel terzo slot** (`game/weapons/melee/`, `MeleeAttack`, `WallWeapon`): martello da fabbro, katana e martellone, comprati al muro o trovati nelle casse del campus; tasto 3 per prenderle in mano, il colpo lo calcola l'host come il pugno.
+
+- **3.10 Proiettili da carro armato** (`game/pickups/shell_rack.gd`, `tank_shell_pickup.gd`): si prendono dalle casse dell'esercito e si portano in spalla (`FpsController.carrying_shell`, G per posarli); una martellata di un compagno (`MeleeAttack._hit_shell_carriers`) li fa partire a razzo dove guarda chi li porta (`host_fire_shell`, razzo `game/weapons/tank_shell.tres`).
+
 ## 5. Prossimi passi (da ROADMAP)
 
-- **3.9** armi bianche nel terzo slot (martello, martellone, katana); **3.10** proiettili da carro armato e razzo a martellate; **3.11** playtest della run completa.
+- **3.11** playtest della run completa.
 - Ancora da decidere con lo sviluppatore: cosa succede tra le ondate, ruolo della distruzione, altri modi di vincere.
 - **2.5** prova con 4 istanze e con amici su internet; **2.6** Steam (lobby, inviti).
 - **Fase 4** personaggi (4 slot abilità più passiva). **Fase 5** grafica vera.

@@ -382,7 +382,8 @@ Click sinistro spara   ·   R ricarica   ·   F pugno
 E apri casse e raccogli armi (tieni premuto: rianima un compagno)
 V ispeziona l'arma (se ha un'animazione)
 F3 statistiche delle prestazioni
-1 / 2 o rotella cambia arma   ·   Esc libera il mouse"
+1 / 2 o rotella cambia arma   ·   3 arma bianca   ·   G posa il proiettile
+Esc libera il mouse"
 
 [node name="InteractPrompt" type="RichTextLabel" parent="Hud"]
 visible = false

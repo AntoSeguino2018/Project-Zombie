@@ -33,9 +33,11 @@
 [ext_resource type="Script" path="res://game/levels/zones/zone_door.gd" id="31_zone_door"]
 [ext_resource type="Script" path="res://game/levels/destructible/destructible_blocks.gd" id="32_destructible_blocks"]
 [ext_resource type="Script" path="res://game/levels/props/helicopter.gd" id="33_helicopter"]
-[ext_resource type="Resource" path="res://game/boosts/espresso.tres" id="34_espresso"]
-[ext_resource type="Resource" path="res://game/boosts/doppio.tres" id="35_doppio"]
-[ext_resource type="Resource" path="res://game/boosts/merendina.tres" id="36_merendina"]
+[ext_resource type="Script" path="res://game/pickups/wall_weapon.gd" id="34_wall_weapon"]
+[ext_resource type="Script" path="res://game/pickups/shell_rack.gd" id="35_shell_rack"]
+[ext_resource type="Resource" path="res://game/boosts/espresso.tres" id="36_espresso"]
+[ext_resource type="Resource" path="res://game/boosts/doppio.tres" id="37_doppio"]
+[ext_resource type="Resource" path="res://game/boosts/merendina.tres" id="38_merendina"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
@@ -4518,61 +4520,108 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -7, 46)
 
 [node name="CassaCentri" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0, 22)
+melee_chance = 0.12
 
 [node name="CassaViale" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -100, 0, 9.5)
+melee_chance = 0.12
 
 [node name="CassaMensa" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110, 0, 55)
+melee_chance = 0.12
 
 [node name="CassaAulario" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -110, 0, -80)
+melee_chance = 0.12
 
 [node name="CassaSoppalco" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -83)
+melee_chance = 0.12
 
 [node name="CassaTorre" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 90, 0, -40)
+melee_chance = 0.12
 
 [node name="CassaParcheggio" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110, 0, 84)
+melee_chance = 0.12
 
 [node name="CassaLab" parent="Crates" instance=ExtResource("22_weapon_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -7, 76)
+melee_chance = 0.12
+
+[node name="WallWeapons" type="Node3D" parent="."]
+
+[node name="MartelloCentri" type="StaticBody3D" parent="WallWeapons"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 12, 1.5, 59.6)
+script = ExtResource("34_wall_weapon")
+weapon_id = "martello"
+
+[node name="KatanaBiblioteca" type="StaticBody3D" parent="WallWeapons"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -34.6, 1.5, -30)
+script = ExtResource("34_wall_weapon")
+weapon_id = "katana"
+
+[node name="MartelloneLab" type="StaticBody3D" parent="WallWeapons"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 90, -5.5, 79.6)
+script = ExtResource("34_wall_weapon")
+weapon_id = "martellone"
+
+[node name="ShellRacks" type="Node3D" parent="."]
+
+[node name="ProiettileLab1" type="StaticBody3D" parent="ShellRacks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, -7, 64)
+script = ExtResource("35_shell_rack")
+
+[node name="ProiettileLab2" type="StaticBody3D" parent="ShellRacks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, -7, 68)
+script = ExtResource("35_shell_rack")
+
+[node name="ProiettileLab3" type="StaticBody3D" parent="ShellRacks"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 96, -7, 56)
+script = ExtResource("35_shell_rack")
+
+[node name="ProiettileCamion1" type="StaticBody3D" parent="ShellRacks"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 94, 0, 18)
+script = ExtResource("35_shell_rack")
+
+[node name="ProiettileCamion2" type="StaticBody3D" parent="ShellRacks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, 0, 70)
+script = ExtResource("35_shell_rack")
 
 [node name="Machines" type="Node3D" parent="."]
 
 [node name="MerendinaCentri" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -6, 0, 59.1)
-boost = ExtResource("36_merendina")
+boost = ExtResource("38_merendina")
 
 [node name="EspressoViale" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 55, 0, 11.1)
-boost = ExtResource("34_espresso")
+boost = ExtResource("36_espresso")
 
 [node name="EspressoMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -58, 0, 59.1)
-boost = ExtResource("34_espresso")
+boost = ExtResource("36_espresso")
 
 [node name="DoppioMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -56.8, 0, 59.1)
-boost = ExtResource("35_doppio")
+boost = ExtResource("37_doppio")
 
 [node name="MerendinaMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -55.6, 0, 59.1)
-boost = ExtResource("36_merendina")
+boost = ExtResource("38_merendina")
 
 [node name="DoppioTorre" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 94.4, 0, -60)
-boost = ExtResource("35_doppio")
+boost = ExtResource("37_doppio")
 
 [node name="EspressoStazione" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.4, 0, 82)
-boost = ExtResource("34_espresso")
+boost = ExtResource("36_espresso")
 
 [node name="MerendinaLab" parent="Machines" instance=ExtResource("23_vending_machine")]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 50.6, -7, 44)
-boost = ExtResource("36_merendina")
+boost = ExtResource("38_merendina")
 
 [node name="Elicottero" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 12, -55)

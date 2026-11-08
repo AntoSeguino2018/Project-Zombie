@@ -45,7 +45,17 @@ Assi: X verso est, Z verso sud (nord = -Z). Misure in metri, terreno a quota 0.
 
 I prezzi sono provvisori. Per riferimento: una cassa costa 100 €, un'ondata superata dà 25 + 5 × numero dell'ondata, e una uccisione da 10 a 60 €.
 
-Altro: 9 casse (una per zona, tranne il tetto), 10 macchinette, 40 punti di comparsa (almeno 2 per zona), 4 muretti distruttibili.
+Altro: 8 casse, 10 macchinette, 40 punti di comparsa (almeno 2 per zona), 4 muretti distruttibili.
+
+**Armi bianche al muro** (passo 3.9), nella lista `wall_weapons` dello script; nelle casse del campus esce un'arma bianca nel 12% dei casi (`CRATE_MELEE_CHANCE`):
+
+| Arma | Dove | Prezzo |
+|---|---|---|
+| Martello da fabbro | Centri comuni, parete sud | 250 € |
+| Katana | biblioteca, parete ovest | 600 € |
+| Martellone | laboratori, parete sud | 900 € |
+
+**Proiettili da carro armato** (passo 3.10), nella lista `shell_racks` dello script: 5 casse dell'esercito, 3 nei laboratori e 2 vicino ai camion del parcheggio. Il proiettile si prende gratis e ricompare dopo 90 secondi.
 
 ## Porte a pagamento
 

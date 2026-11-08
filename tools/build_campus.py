@@ -365,6 +365,28 @@ wall_x(G, "RingheraBotola", -48.3, 61.9, 66.1, h=1.1, y0=TY, mat="dark", t=0.15)
 box(G, "Eliporto", (80, TY + 0.03, -55), (14, 0.06, 14), "danger", collide=False)
 # l'elicottero (passo 3.8): sull'eliporto, con la radio dell'esercito vicino alla botola
 HELI = ((80, TY, -55), (-12, 0, 12))
+
+# =============================================================================
+# Armi bianche (passo 3.9): appese al muro (nome, posizione, yaw, arma). Il nodo
+# guarda verso +Z ruotato di yaw (180 = verso nord, 90 = verso est).
+# Nelle casse escono ogni tanto (CRATE_MELEE_CHANCE, come MeleeCatalog.CRATE_CHANCE).
+# =============================================================================
+wall_weapons = [
+    ("MartelloCentri", (12, 1.5, 59.6), 180, "martello"),
+    ("KatanaBiblioteca", (-34.6, 1.5, -30), 90, "katana"),
+    ("MartelloneLab", (90, -7.0 + 1.5, 79.6), 180, "martellone"),   # laboratori, pavimento a -7
+]
+CRATE_MELEE_CHANCE = 0.12
+
+# Proiettili da carro armato (passo 3.10): casse dell'esercito con un proiettile
+# sopra, che ricompare 90 s dopo che qualcuno l'ha preso (nome, posizione, yaw).
+shell_racks = [
+    ("ProiettileLab1", (56, -7.0, 64), 0),
+    ("ProiettileLab2", (56, -7.0, 68), 0),
+    ("ProiettileLab3", (96, -7.0, 56), 90),
+    ("ProiettileCamion1", (94, 0, 18), 90),
+    ("ProiettileCamion2", (92, 0, 70), 0),
+]
 for x in (72, 88):
     for z in (-65, -45):
         box(G, "PilastroTorre", (x, TY / 2 - 0.25, z), (1.2, TY - 0.5, 1.2), "concrete")
@@ -497,6 +519,8 @@ zone_script = res("Script", "res://game/levels/zones/map_zone.gd")
 door_script = res("Script", "res://game/levels/zones/zone_door.gd")
 destructible_script = res("Script", "res://game/levels/destructible/destructible_blocks.gd")
 heli_script = res("Script", "res://game/levels/props/helicopter.gd")
+wall_weapon_script = res("Script", "res://game/pickups/wall_weapon.gd")
+shell_rack_script = res("Script", "res://game/pickups/shell_rack.gd")
 boosts = {b: res("Resource", f"res://game/boosts/{b}.tres") for b in ("espresso", "doppio", "merendina")}
 
 head = ['[gd_scene format=3]\n']
@@ -629,6 +653,22 @@ for name, pos, yaw in crates:
     out += f'''
 [node name="{name}" parent="Crates" instance=ExtResource("{crate_scene}")]
 transform = {transform(pos, basis_yaw(yaw))}
+melee_chance = {f(CRATE_MELEE_CHANCE)}
+'''
+out += '\n[node name="WallWeapons" type="Node3D" parent="."]\n'
+for name, pos, yaw, weapon_id in wall_weapons:
+    out += f'''
+[node name="{name}" type="StaticBody3D" parent="WallWeapons"]
+transform = {transform(pos, basis_yaw(yaw))}
+script = ExtResource("{wall_weapon_script}")
+weapon_id = "{weapon_id}"
+'''
+out += '\n[node name="ShellRacks" type="Node3D" parent="."]\n'
+for name, pos, yaw in shell_racks:
+    out += f'''
+[node name="{name}" type="StaticBody3D" parent="ShellRacks"]
+transform = {transform(pos, basis_yaw(yaw))}
+script = ExtResource("{shell_rack_script}")
 '''
 out += '\n[node name="Machines" type="Node3D" parent="."]\n'
 for name, pos, yaw, boost in machines:

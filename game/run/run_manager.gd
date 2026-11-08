@@ -228,6 +228,10 @@ func _host_restart() -> void:
 		crate.host_reset()
 	for helicopter in get_tree().get_nodes_in_group("helicopters"):
 		helicopter.host_reset()
+	for shell in get_tree().get_nodes_in_group("shell_pickups"):
+		shell.queue_free()
+	for rack in get_tree().get_nodes_in_group("shell_racks"):
+		rack.host_reset()
 	# Mappe a zone: porte di nuovo chiuse e aperte solo le zone di partenza.
 	var zones := ZoneManager.of(self)
 	if zones:

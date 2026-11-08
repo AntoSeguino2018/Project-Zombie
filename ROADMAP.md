@@ -101,8 +101,19 @@ Scelte: una sola mappa molto grande, run a **ondate** con budget di pericolosit�
   - atterrato si sale con E (solo chi è in piedi): si resta seduti, non si spara e gli zombie lo ignorano. Dal primo che sale ci sono 20 secondi per gli altri; se salgono tutti quelli in piedi parte subito;
   - ripartito, la run è vinta: riepilogo con chi si è salvato, ondata, uccisioni e tempo, poi dopo 15 secondi si riparte da capo; tutto deciso dall'host, anche per chi entra dopo
   - Da regolare giocando: prezzo, tempi, quanto si versa alla volta
-- [ ] 3.9 Armi bianche nel terzo slot: martello piccolo, martellone, katana (al muro a pagamento e nelle casse)
-- [ ] 3.10 Proiettili da carro armato in spalla: colpiti col martello da un compagno partono a razzo dove guarda chi li porta
+- [x] 3.9 **Armi bianche nel terzo slot** (tasto 3, poi click sinistro; F resta il pugno), definite come dati (`MeleeWeaponData`, `game/weapons/melee/`):
+  - **Martello da fabbro** 250 €: 45 di danno ogni 0,45 s, spinge, stacca un pezzo dei muri distruttibili, è un martello (serve al passo 3.10);
+  - **Katana** 600 €: 75 ogni 0,4 s a tutti gli zombie davanti (fino a 6, arco largo), quasi senza spinta;
+  - **Martellone** 900 €: 130 ogni 1,1 s, scaraventa come la Mano pesante (35 a chi colpisce in volo), sfonda i muri;
+  - si comprano al muro (martello nei Centri comuni, katana in biblioteca, martellone nei laboratori) e escono dalle casse del campus nel 12% dei casi; se ne tiene una, quella vecchia resta a terra; si perdono alla ripartenza;
+  - il colpo lo calcola l'host (bersagli, danni, spinte, muri), come per il pugno; modelli in prima persona in greybox con l'animazione del colpo (dall'alto per i martelli, di taglio per la katana)
+  - Da regolare giocando: numeri, prezzi, dove stanno; gli altri giocatori non vedono ancora l'arma in mano
+- [x] 3.10 **Proiettili da carro armato** (`tank_shell_pickup.gd`, `shell_rack.gd`, `FpsController.host_fire_shell`):
+  - 5 casse dell'esercito col proiettile (3 nei laboratori, 2 vicino ai camion del parcheggio), gratis; il proiettile ricompare dopo 90 s;
+  - in spalla: mani occupate (niente armi da fuoco né arma bianca, il pugno sì), velocità all'85%, lo vedono gli altri sul modello; G lo posa a terra (resta 2 minuti) e si può riprendere; chi va a terra o sale sull'elicottero lo lascia;
+  - **la combo:** una martellata (martello o martellone) di un compagno a chi lo porta lo fa partire a razzo dalla spalla, dove guarda chi lo porta: 250 di danno diretto, esplosione di 6 m da 350 che spinge gli zombie e sfonda i muri; chi lo portava riceve un contraccolpo all'indietro. La katana non lo fa partire, e ai compagni non fa danni;
+  - tutto deciso dall'host; gli altri vedono una copia del razzo
+  - Da regolare giocando: danni, raggio, velocità, quanti proiettili e dove; da soli non si può usare (serve un compagno col martello)
 - [ ] 3.11 Playtest della run completa
 
 ### Fase 4: Personaggi (~40–60 ore per i primi 2)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MeleeWeaponData" format=3]
+
+[ext_resource type="Script" path="res://game/weapons/melee/melee_weapon_data.gd" id="1_melee"]
+
+[resource]
+script = ExtResource("1_melee")
+id = "martello"
+display_name = "Martello da fabbro"
+price = 250
+damage = 45.0
+reach = 2.3
+arc_degrees = 45.0
+max_targets = 2
+cooldown = 0.45
+push_speed = 7.0
+push_up = 2.5
+structure_damage = 100.0
+structure_radius = 0.35
+is_hammer = true
+handle_length = 0.38
+head_size = Vector3(0.14, 0.07, 0.07)

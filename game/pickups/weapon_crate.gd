@@ -15,6 +15,9 @@ extends StaticBody3D
 @export var forced_spec: Array = []
 ## Secondi dall'apertura prima che si richiuda (e si possa riaprire).
 @export var refill_time := 60.0
+## Probabilità che esca un'arma bianca invece di un'arma da fuoco (nel campus
+## MeleeCatalog.CRATE_CHANCE; 0 nei livelli di prova).
+@export_range(0.0, 1.0) var melee_chance := 0.0
 ## Altezza dell'arma che esce, sopra la base della cassa.
 @export var pickup_height := 1.15
 ## Di quanto si apre il coperchio, in gradi.
@@ -70,6 +73,8 @@ func interact(player: FpsController, _slot: int) -> void:
 	_set_open(true)
 	_refill_left = refill_time
 	var spec := forced_spec.duplicate() if not forced_spec.is_empty() else WeaponCatalog.roll(_rng)
+	if forced_spec.is_empty() and _rng.randf() < melee_chance:
+		spec = MeleeCatalog.roll_spec(_rng)
 	var at := global_position + Vector3.UP * pickup_height
 	var replicator := PickupReplicator.of(self)
 	var pickup: WeaponPickup = replicator.spawn_pickup(spec, at) if replicator else null

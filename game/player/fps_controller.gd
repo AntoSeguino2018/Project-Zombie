@@ -118,6 +118,12 @@ var _name_tag_height := 0.0
 ## Posto sull'elicottero (null = non a bordo): chi è a bordo ci resta seduto,
 ## non spara e gli zombie lo ignorano. Lo decide l'host.
 var _seat: Node3D
+## Porta in spalla un proiettile da carro armato (lo decide l'host): non spara,
+## va un po' più piano, e se un compagno gli dà una martellata il proiettile
+## parte a razzo dove guarda lui (host_fire_shell).
+var carrying_shell := false
+## Il proiettile visto in prima persona, sulla spalla destra.
+var _shell_view: Node3D
 var _name_tag_tween: Tween
 ## Oggetto interagibile guardato in questo momento (null = nessuno).
 var _interact_target: Node
@@ -128,6 +134,13 @@ var _base_max_health := 100.0
 
 @onready var _head: Marker3D = $Head
 @onready var _camera: Camera3D = $Camera3D
+## Il razzo del proiettile da carro armato.
+const SHELL_ROCKET := preload("res://game/weapons/tank_shell.tres")
+## Velocità con il proiettile in spalla, in frazione.
+const SHELL_SPEED_FACTOR := 0.85
+## Contraccolpo su chi porta il proiettile quando parte, in m/s (indietro e in alto).
+const SHELL_RECOIL := Vector2(8.0, 3.0)
+
 ## Il modello in terza persona: sceglie da sé le animazioni dallo stato del giocatore.
 @onready var _body: PlayerModel = $Body
 @onready var _name_tag: Label3D = $NameTag
@@ -172,10 +185,19 @@ func _ready() -> void:
 		return
 	# Il proprio corpo non si vede, ma continua a proiettare l'ombra.
 	_body.set_shadow_only(true)
+	_shell_view = TankShellPickup.build_model()
+	# Più piccolo e più in là del vero: sulla spalla, senza coprire la visuale.
+	_shell_view.position = Vector3(0.36, -0.27, -0.5)
+	_shell_view.scale = Vector3.ONE * 0.5
+	_shell_view.visible = false
+	for node in _shell_view.find_children("*", "GeometryInstance3D", true, false):
+		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_camera.add_child(_shell_view)
 	_name_tag.visible = false
 	_weapon.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
 	_weapon.fired.connect(func(): _shake = maxf(_shake, deg_to_rad(_weapon.data.camera_shake_degrees)))
 	_melee.dealt_damage.connect(func(_target, _amount, killed): _hud.crosshair.show_hit(killed))
+	_melee.weapon_changed.connect(_on_melee_changed)
 	_hud.bind_weapon(_weapon)
 	_hud.bind_inventory(_inventory)
 	CombatEvents.bus.enemy_killed.connect(_on_enemy_killed)
@@ -190,17 +212,31 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("reload"):
-		_weapon.start_reload()
+		if not _melee.active:
+			_weapon.start_reload()
 	elif event.is_action_pressed("inspect"):
-		_weapon.inspect()
+		if not _melee.active:
+			_weapon.inspect()
 	elif event.is_action_pressed("weapon_1"):
+		_select_guns()
 		_weapon.equip(0)
 	elif event.is_action_pressed("weapon_2"):
+		_select_guns()
 		_weapon.equip(1)
-	elif event.is_action_pressed("weapon_next"):
-		_weapon.cycle(1)
-	elif event.is_action_pressed("weapon_prev"):
-		_weapon.cycle(-1)
+	elif event.is_action_pressed("weapon_3"):
+		_select_melee()
+	elif event.is_action_pressed("drop_shell"):
+		if carrying_shell:
+			if multiplayer.is_server():
+				host_drop_shell()
+			else:
+				_request_drop_shell.rpc_id(1)
+	elif event.is_action_pressed("weapon_next") or event.is_action_pressed("weapon_prev"):
+		# Dall'arma bianca la rotella torna alle armi da fuoco.
+		if _melee.active:
+			_select_guns()
+		else:
+			_weapon.cycle(1 if event.is_action_pressed("weapon_next") else -1)
 	elif event is InputEventMouseButton and event.pressed:
 		_capture_mouse()
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -252,6 +288,8 @@ func _physics_process(delta: float) -> void:
 	var direction := transform.basis * Vector3(input.x, 0.0, input.y)
 	var sprinting := Input.is_action_pressed("sprint") and input.y < 0.0
 	var speed := (sprint_speed if sprinting else walk_speed) * (1.0 + _inventory.stat("move_speed"))
+	if carrying_shell:
+		speed *= SHELL_SPEED_FACTOR
 	var friction := push_friction.x if is_on_floor() else push_friction.y
 	_push = _push.lerp(Vector3.ZERO, 1.0 - exp(-friction * delta))
 	velocity.x = direction.x * speed + _push.x
@@ -267,6 +305,43 @@ func _physics_process(delta: float) -> void:
 ## Armi portate dal giocatore.
 func weapon() -> Weapon:
 	return _weapon
+
+
+## Pugno e arma bianca (terzo slot).
+func melee() -> MeleeAttack:
+	return _melee
+
+
+## Tasto 3: in mano l'arma bianca (se ce n'è una), via l'arma da fuoco.
+func _select_melee() -> void:
+	if carrying_shell:
+		return
+	if _melee.weapon == null:
+		_hud.show_notice("Non hai un'arma bianca: si comprano al muro")
+		return
+	_melee.set_active(true)
+	_weapon.visible = false
+	_hud.show_melee(_melee.weapon)
+
+
+func _on_melee_changed(new_weapon: MeleeWeaponData) -> void:
+	if new_weapon == null:
+		# Tolta (ripartenza): di nuovo l'arma da fuoco.
+		_weapon.visible = life == Life.ALIVE and not is_boarded()
+		_hud.show_guns(_weapon)
+	elif _melee.active:
+		_hud.show_melee(new_weapon)
+	else:
+		_hud.show_notice("%s nel terzo slot: tasto 3" % new_weapon.display_name)
+
+
+## Di nuovo l'arma da fuoco in mano.
+func _select_guns() -> void:
+	if not _melee.active:
+		return
+	_melee.set_active(false)
+	_weapon.visible = life == Life.ALIVE and not is_boarded()
+	_hud.show_guns(_weapon)
 
 
 ## Soldi, boost e oggetti della run.
@@ -303,6 +378,8 @@ func is_boarded() -> bool:
 
 ## Sull'host: il giocatore sale sull'elicottero al posto seat (null = scende).
 func host_board(seat: Node3D) -> void:
+	if seat and carrying_shell:
+		host_drop_shell()
 	_apply_board(seat)
 	if NetSession.is_online():
 		_receive_board.rpc(seat.get_path() if seat else NodePath())
@@ -317,8 +394,101 @@ func _receive_board(seat_path: NodePath) -> void:
 func _apply_board(seat: Node3D) -> void:
 	_seat = seat
 	if is_multiplayer_authority():
+		if seat:
+			_select_guns()
 		_weapon.visible = seat == null and life == Life.ALIVE
 		_hud.show_prompt("")
+
+
+## Può mettersi in spalla un proiettile: vivo, a mani libere, non a bordo.
+func can_carry_shell() -> bool:
+	return life == Life.ALIVE and not carrying_shell and not is_boarded()
+
+
+## Sull'host: il giocatore porta (o non porta più) il proiettile in spalla.
+func host_set_shell(on: bool) -> void:
+	_apply_shell(on)
+	if NetSession.is_online():
+		_receive_shell.rpc(on)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_shell(on: bool) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_apply_shell(on)
+
+
+func _apply_shell(on: bool) -> void:
+	if on == carrying_shell:
+		return
+	carrying_shell = on
+	_body.set_shell(on)
+	if not is_multiplayer_authority():
+		return
+	if on:
+		_select_guns()
+		_hud.show_shell()
+		_hud.show_notice("Fatti dare una martellata da un compagno! (G per posarlo)")
+	else:
+		_hud.show_guns(_weapon)
+	_weapon.visible = not on and life == Life.ALIVE and not is_boarded()
+	_shell_view.visible = on
+
+
+## Sull'host: posa il proiettile ai propri piedi.
+func host_drop_shell() -> void:
+	if not carrying_shell:
+		return
+	host_set_shell(false)
+	var replicator := PickupReplicator.of(self)
+	if replicator:
+		replicator.spawn_shell(global_position + Vector3.UP * 0.05 - global_basis.z * 0.6)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_drop_shell() -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		host_drop_shell()
+
+
+## Sull'host: un compagno (by) ha dato una martellata a chi porta il
+## proiettile: parte a razzo dalla spalla, dove guarda chi lo porta, e lo
+## spinge indietro. Il razzo dell'host fa i danni; gli altri ne vedono una copia.
+func host_fire_shell(by: Node3D) -> void:
+	if not carrying_shell:
+		return
+	host_set_shell(false)
+	var aim := _host_aim()
+	var forward := -aim.z
+	var start := _head.global_position + aim.x * 0.3 + forward * 0.6
+	_launch_shell(start, forward, true)
+	if NetSession.is_online():
+		_show_shell_rocket.rpc(start, forward)
+	var back := -Vector3(forward.x, 0.0, forward.z).normalized()
+	apply_knockback(back * SHELL_RECOIL.x + Vector3.UP * SHELL_RECOIL.y)
+	if by is FpsController:
+		for player in [self, by]:
+			player.inventory().host_notice("BUM! Proiettile partito")
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _show_shell_rocket(start: Vector3, direction: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_launch_shell(start, direction, false)
+
+
+func _launch_shell(start: Vector3, direction: Vector3, authoritative: bool) -> void:
+	var rocket: Projectile = SHELL_ROCKET.projectile_scene.instantiate()
+	get_tree().current_scene.add_child(rocket)
+	var exclude: Array[RID] = [get_rid()]
+	rocket.launch(start, direction, SHELL_ROCKET, self, exclude, Weapon.TARGET_MASK, authoritative)
+
+
+## Dove guarda il giocatore, sull'host: la mira di chi lo controlla arriva in rete.
+func _host_aim() -> Basis:
+	var yaw := _yaw if is_multiplayer_authority() else sync_yaw
+	var pitch := _pitch if is_multiplayer_authority() else sync_pitch
+	return Basis.from_euler(Vector3(pitch, yaw, 0.0))
 
 
 ## Chi controlla il giocatore lo tiene seduto al suo posto (si muove con
@@ -407,6 +577,8 @@ func host_respawn(at: Vector3) -> void:
 ## Sull'host, a inizio run: vita piena, punto di partenza, solo la pistola.
 func host_restart() -> void:
 	host_board(null)
+	host_set_shell(false)
+	_melee.host_set_weapon("")
 	# Prima l'inventario: chi si rialza deve già avere i caricatori senza oggetti.
 	_inventory.host_reset()
 	_health.reset()
@@ -421,6 +593,9 @@ func host_restart() -> void:
 
 ## Sull'host: cambia lo stato di vita e lo manda a tutti.
 func _host_set_life(new_life: Life) -> void:
+	# Chi cade lascia a terra il proiettile che aveva in spalla.
+	if new_life != Life.ALIVE and carrying_shell:
+		host_drop_shell()
 	if new_life == Life.DOWNED:
 		bleed_left = bleed_out_time
 	_apply_life(new_life, bleed_left)
@@ -450,6 +625,8 @@ func _apply_life(new_life: Life, new_bleed_left: float) -> void:
 	_reviving = null
 	_show_dead_body(life != Life.ALIVE, life == Life.DEAD)
 	if is_multiplayer_authority():
+		if life != Life.ALIVE:
+			_select_guns()
 		_weapon.visible = life == Life.ALIVE
 		_hud.show_prompt("")
 		match life:
@@ -707,6 +884,13 @@ func _show_dead_body(down: bool, dead := false) -> void:
 
 
 func _handle_fire() -> void:
+	# Con il proiettile in spalla le mani sono occupate.
+	if carrying_shell:
+		return
+	if _melee.active:
+		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_action_pressed("fire") and _melee.can_attack():
+			_melee.swing(_head.global_position, -_aim_basis().z, self)
+		return
 	# Caricatore vuoto (per esempio dopo un cambio arma): si ricarica da solo.
 	if _weapon.ammo() == 0:
 		_weapon.start_reload()

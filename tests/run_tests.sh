@@ -26,8 +26,8 @@ T=tests
 L=tests/logs
 mkdir -p $L
 
-ALL_TESTS="test_friendly test_damage test_15b test_16 test_17 test_19 test_enemy test_31 test_32 test_33 test_34 test_35 test_36 test_37 test_38 test_39 test_40 soak"
-ALL_NET="net_test net_combat net_crates net_waves net_revive net_money net_items net_complex net_magnum net_zombies net_campus net_helicopter"
+ALL_TESTS="test_friendly test_damage test_15b test_16 test_17 test_19 test_enemy test_31 test_32 test_33 test_34 test_35 test_36 test_37 test_38 test_39 test_40 test_41 test_42 soak"
+ALL_NET="net_test net_combat net_crates net_waves net_revive net_money net_items net_complex net_magnum net_zombies net_campus net_helicopter net_melee net_shell"
 
 for t in ${TESTS-$ALL_TESTS}; do
   echo "== $t"
