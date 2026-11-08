@@ -1,0 +1,4744 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://assets/materials/greybox_floor.tres" id="1_greybox_floor"]
+[ext_resource type="Material" path="res://assets/materials/greybox_wall.tres" id="2_greybox_wall"]
+[ext_resource type="Material" path="res://assets/materials/greybox_accent.tres" id="3_greybox_accent"]
+[ext_resource type="Material" path="res://assets/materials/greybox_danger.tres" id="4_greybox_danger"]
+[ext_resource type="Material" path="res://assets/materials/greybox_yellow.tres" id="5_greybox_yellow"]
+[ext_resource type="Material" path="res://assets/materials/greybox_green.tres" id="6_greybox_green"]
+[ext_resource type="Material" path="res://assets/materials/greybox_blue.tres" id="7_greybox_blue"]
+[ext_resource type="Material" path="res://assets/materials/greybox_dark.tres" id="8_greybox_dark"]
+[ext_resource type="Material" path="res://assets/materials/greybox_tile.tres" id="9_greybox_tile"]
+[ext_resource type="Material" path="res://assets/materials/greybox_white.tres" id="10_greybox_white"]
+[ext_resource type="Material" path="res://assets/materials/greybox_concrete.tres" id="11_greybox_concrete"]
+[ext_resource type="PackedScene" path="res://game/player/player.tscn" id="12_player"]
+[ext_resource type="Script" path="res://game/levels/level_navigation.gd" id="13_level_navigation"]
+[ext_resource type="PackedScene" path="res://game/enemies/walker.tscn" id="14_walker"]
+[ext_resource type="PackedScene" path="res://game/enemies/runner.tscn" id="15_runner"]
+[ext_resource type="PackedScene" path="res://game/enemies/brute.tscn" id="16_brute"]
+[ext_resource type="Script" path="res://game/net/player_spawner.gd" id="17_player_spawner"]
+[ext_resource type="Script" path="res://game/net/enemy_replicator.gd" id="18_enemy_replicator"]
+[ext_resource type="Script" path="res://game/net/pickup_replicator.gd" id="19_pickup_replicator"]
+[ext_resource type="PackedScene" path="res://game/pickups/weapon_pickup.tscn" id="20_weapon_pickup"]
+[ext_resource type="PackedScene" path="res://game/pickups/item_pickup.tscn" id="21_item_pickup"]
+[ext_resource type="PackedScene" path="res://game/pickups/weapon_crate.tscn" id="22_weapon_crate"]
+[ext_resource type="PackedScene" path="res://game/pickups/vending_machine.tscn" id="23_vending_machine"]
+[ext_resource type="Script" path="res://game/waves/wave_director.gd" id="24_wave_director"]
+[ext_resource type="Resource" path="res://game/waves/walker_wave.tres" id="25_walker_wave"]
+[ext_resource type="Resource" path="res://game/waves/runner_wave.tres" id="26_runner_wave"]
+[ext_resource type="Resource" path="res://game/waves/brute_wave.tres" id="27_brute_wave"]
+[ext_resource type="Script" path="res://game/run/run_manager.gd" id="28_run_manager"]
+[ext_resource type="Script" path="res://game/levels/zones/zone_manager.gd" id="29_zone_manager"]
+[ext_resource type="Script" path="res://game/levels/zones/map_zone.gd" id="30_map_zone"]
+[ext_resource type="Script" path="res://game/levels/zones/zone_door.gd" id="31_zone_door"]
+[ext_resource type="Script" path="res://game/levels/destructible/destructible_blocks.gd" id="32_destructible_blocks"]
+[ext_resource type="Script" path="res://game/levels/props/helicopter.gd" id="33_helicopter"]
+[ext_resource type="Resource" path="res://game/boosts/espresso.tres" id="34_espresso"]
+[ext_resource type="Resource" path="res://game/boosts/doppio.tres" id="35_doppio"]
+[ext_resource type="Resource" path="res://game/boosts/merendina.tres" id="36_merendina"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_horizon_color = Color(0.66, 0.7, 0.78, 1)
+ground_horizon_color = Color(0.66, 0.7, 0.78, 1)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+tonemap_mode = 2
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_level"]
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"navigation_source"
+agent_height = 1.75
+agent_radius = 0.75
+agent_max_climb = 0.25
+agent_max_slope = 40.0
+
+[node name="Campus" type="Node3D"]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Players")
+script = ExtResource("17_player_spawner")
+player_scene = ExtResource("12_player")
+spawn_origin = Vector3(-1.5, -5.9, 80.4)
+
+[node name="EnemyReplicator" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Enemies")
+script = ExtResource("18_enemy_replicator")
+enemy_scenes = Array[PackedScene]([ExtResource("14_walker"), ExtResource("15_runner"), ExtResource("16_brute")])
+
+[node name="PickupReplicator" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Pickups")
+script = ExtResource("19_pickup_replicator")
+pickup_scene = ExtResource("20_weapon_pickup")
+item_scene = ExtResource("21_item_pickup")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.383022, 0.321394, 0, 0.642788, 0.766044, -0.5, -0.663414, 0.55667, 0, 10, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 90.0
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Zones" type="Node3D" parent="."]
+script = ExtResource("29_zone_manager")
+
+[node name="aula" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Aula studio"
+start_unlocked = true
+bounds = Array[AABB]([AABB(-10, -8, 46, 20, 7.4, 44)])
+neighbors = Array[StringName]([&"centri"])
+
+[node name="centri" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Centri comuni"
+start_unlocked = true
+bounds = Array[AABB]([AABB(-30, -0.6, 12, 60, 11.6, 48)])
+neighbors = Array[StringName]([&"aula", &"viale_ovest", &"viale_est", &"mensa", &"parcheggio"])
+
+[node name="viale_ovest" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Viale"
+start_unlocked = false
+bounds = Array[AABB]([AABB(-115, -0.6, -12, 115, 11.6, 24)])
+neighbors = Array[StringName]([&"viale_est", &"centri", &"mensa", &"aulario", &"biblioteca"])
+
+[node name="viale_est" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Viale"
+start_unlocked = false
+bounds = Array[AABB]([AABB(0, -0.6, -12, 115, 11.6, 24)])
+neighbors = Array[StringName]([&"viale_ovest", &"centri", &"parcheggio", &"biblioteca", &"torre"])
+
+[node name="mensa" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Mensa"
+start_unlocked = false
+bounds = Array[AABB]([AABB(-115, -0.6, 12, 85, 11.6, 48)])
+neighbors = Array[StringName]([&"centri", &"viale_ovest"])
+
+[node name="aulario" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Aulario"
+start_unlocked = false
+bounds = Array[AABB]([AABB(-115, -0.6, -85, 80, 11.6, 73)])
+neighbors = Array[StringName]([&"viale_ovest", &"biblioteca"])
+
+[node name="biblioteca" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Biblioteca"
+start_unlocked = false
+bounds = Array[AABB]([AABB(-35, -0.6, -85, 70, 11.6, 73)])
+neighbors = Array[StringName]([&"viale_ovest", &"viale_est", &"aulario", &"torre"])
+
+[node name="torre" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Torre dei dipartimenti"
+start_unlocked = false
+bounds = Array[AABB]([AABB(35, -0.6, -85, 80, 6, 73), AABB(55, 5.4, -75, 12, 1.2, 27.6)])
+neighbors = Array[StringName]([&"viale_est", &"biblioteca", &"tetto"])
+
+[node name="tetto" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Tetto"
+start_unlocked = false
+bounds = Array[AABB]([AABB(55, 11, -75, 40, 9, 40), AABB(61.5, 5.9, -48.4, 5, 6, 10.4)])
+neighbors = Array[StringName]([&"torre"])
+
+[node name="parcheggio" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Parcheggio"
+start_unlocked = false
+bounds = Array[AABB]([AABB(30, -0.6, 12, 85, 11.6, 76)])
+neighbors = Array[StringName]([&"centri", &"viale_est", &"laboratori"])
+
+[node name="laboratori" type="Node3D" parent="Zones"]
+script = ExtResource("30_map_zone")
+display_name = "Laboratori"
+start_unlocked = false
+bounds = Array[AABB]([AABB(50, -8, 22, 60, 7.4, 58)])
+neighbors = Array[StringName]([&"parcheggio"])
+
+[node name="Navigation" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_level")
+script = ExtResource("13_level_navigation")
+
+[node name="Geometry" type="Node3D" parent="." groups=["navigation_source"]]
+
+[node name="PavimentoAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6.5, 68)
+use_collision = true
+size = Vector3(20, 1, 44)
+material = ExtResource("1_greybox_floor")
+
+[node name="SoffittoAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 75.25)
+use_collision = true
+size = Vector3(21, 1, 30.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroAulaOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, -3.5, 76)
+use_collision = true
+size = Vector3(0.5, 5, 28)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAulaEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -3.5, 76)
+use_collision = true
+size = Vector3(0.5, 5, 28)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAulaSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.5, 90)
+use_collision = true
+size = Vector3(20, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAulaNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.375, -3.5, 62)
+use_collision = true
+size = Vector3(7.25, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAulaNord2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.375, -3.5, 62)
+use_collision = true
+size = Vector3(7.25, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="Lavagna" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.68, -3.6, 76)
+use_collision = true
+size = Vector3(0.12, 2.8, 27)
+material = ExtResource("10_greybox_white")
+
+[node name="LavagnaCornice" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.7, -2.15, 76)
+use_collision = true
+size = Vector3(0.16, 0.1, 27.2)
+material = ExtResource("8_greybox_dark")
+
+[node name="LavagnaCornice2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.7, -5.05, 76)
+use_collision = true
+size = Vector3(0.16, 0.1, 27.2)
+material = ExtResource("8_greybox_dark")
+
+[node name="LavagnaVaschetta" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, -5.05, 76)
+use_collision = true
+size = Vector3(0.25, 0.06, 26)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="TavoloAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 66)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 66)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 67.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 70)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 70)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 71.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 74)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 74)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 75.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 78)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 78)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 79.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 82)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 82)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula29" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula30" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 83.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.6, 86)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula31" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula32" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula33" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloAula12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.6, 86)
+use_collision = true
+size = Vector3(5, 0.8, 1.6)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="SediaAula34" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula35" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="SediaAula36" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -5.75, 87.3)
+use_collision = true
+size = Vector3(0.5, 0.5, 0.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Cattedra" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5.5, 64.5)
+use_collision = true
+size = Vector3(3.5, 1, 1.2)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="PresaAria" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.6, -5.4, 89.65)
+use_collision = false
+size = Vector3(1.6, 1.2, 0.2)
+material = ExtResource("8_greybox_dark")
+
+[node name="PresaAria2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.6, -5.4, 89.65)
+use_collision = false
+size = Vector3(1.6, 1.2, 0.2)
+material = ExtResource("8_greybox_dark")
+
+[node name="ScalaAulaRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 0.9191, 0.3939, 0, 0.3939, -0.9191, 0, -3.1838, 54.9212)
+use_collision = true
+size = Vector3(5, 0.4, 15.2315)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaAulaGradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -5.9265, 61.7742)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -5.7329, 61.3226)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -5.5394, 60.871)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -5.3458, 60.4194)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -5.1523, 59.9677)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -4.9587, 59.5161)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -4.7652, 59.0645)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -4.5716, 58.6129)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -4.3781, 58.1613)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -4.1845, 57.7097)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.991, 57.2581)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.7974, 56.8065)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.6039, 56.3548)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.4103, 55.9032)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.2168, 55.4516)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -3.0232, 55)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2.8297, 54.5484)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2.6361, 54.0968)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2.4426, 53.6452)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2.249, 53.1935)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2.0555, 52.7419)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -1.8619, 52.2903)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -1.6684, 51.8387)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -1.4748, 51.3871)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -1.2813, 50.9355)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -1.0877, 50.4839)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -0.8942, 50.0323)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -0.7006, 49.5806)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino29" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -0.5071, 49.129)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino30" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -0.3135, 48.6774)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaAulaGradino31" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -0.12, 48.2258)
+use_collision = false
+size = Vector3(5, 0.24, 0.4516)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="MuroScalaOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.75, -3.25, 54)
+use_collision = true
+size = Vector3(0.5, 5.5, 16)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroScalaEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.75, -3.25, 54)
+use_collision = true
+size = Vector3(0.5, 5.5, 16)
+material = ExtResource("11_greybox_concrete")
+
+[node name="SottoScala" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.5, 46.5)
+use_collision = true
+size = Vector3(5.5, 5, 1)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PavimentoCentri" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 30)
+use_collision = true
+size = Vector3(60, 1, 36)
+material = ExtResource("9_greybox_tile")
+
+[node name="PavimentoCentri2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.25, -0.5, 54)
+use_collision = true
+size = Vector3(27.5, 1, 12)
+material = ExtResource("9_greybox_tile")
+
+[node name="PavimentoCentri3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.25, -0.5, 54)
+use_collision = true
+size = Vector3(27.5, 1, 12)
+material = ExtResource("9_greybox_tile")
+
+[node name="RingheraScala" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.75, 0.55, 54)
+use_collision = true
+size = Vector3(0.15, 1.1, 12)
+material = ExtResource("8_greybox_dark")
+
+[node name="RingheraScala2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.75, 0.55, 54)
+use_collision = true
+size = Vector3(0.15, 1.1, 12)
+material = ExtResource("8_greybox_dark")
+
+[node name="MuroCentriSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 60)
+use_collision = true
+size = Vector3(60, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 22)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 36)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, 22)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, 36)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, 22)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, 36)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 4, 22)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroCentri8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 4, 36)
+use_collision = true
+size = Vector3(1.4, 8, 1.4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="BanconeCentri" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.55, 50)
+use_collision = true
+size = Vector3(8, 1.1, 1.5)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Panca" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.25, 28)
+use_collision = true
+size = Vector3(4, 0.5, 0.8)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Panca2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.25, 44)
+use_collision = true
+size = Vector3(4, 0.5, 0.8)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Panca3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.25, 28)
+use_collision = true
+size = Vector3(4, 0.5, 0.8)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="PavimentoViale" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(230, 1, 24)
+material = ExtResource("1_greybox_floor")
+
+[node name="MuroVialeOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115, 4, 0)
+use_collision = true
+size = Vector3(0.5, 8, 24)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115, 4, 0)
+use_collision = true
+size = Vector3(0.5, 8, 24)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.5, 4, -12)
+use_collision = true
+size = Vector3(47, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeNord2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 4, -12)
+use_collision = true
+size = Vector3(62, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeNord3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.5, 4, -12)
+use_collision = true
+size = Vector3(71, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeNord4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96, 4, -12)
+use_collision = true
+size = Vector3(38, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96, 4, 12)
+use_collision = true
+size = Vector3(38, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeSud2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.5, 4, 12)
+use_collision = true
+size = Vector3(71, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeSud3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.5, 4, 12)
+use_collision = true
+size = Vector3(71, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroVialeSud4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96, 4, 12)
+use_collision = true
+size = Vector3(38, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Passerella" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -4)
+use_collision = true
+size = Vector3(120, 0.5, 4)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroPasserella12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55, 1.875, -4)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RingheraPasserella" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.55, -6.1)
+use_collision = true
+size = Vector3(120, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="RingheraPasserella2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.55, -1.9)
+use_collision = true
+size = Vector3(120, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="ScalaPasserellaOvestRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, -0.3162, -0.9487, 0, 0.9487, -0.3162, 1, 0, 0, -65.9368, 1.8103, -4)
+use_collision = true
+size = Vector3(4, 0.4, 12.6491)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaPasserellaOvestGradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -60.2308, 3.7262, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -60.6923, 3.5723, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -61.1538, 3.4185, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -61.6154, 3.2646, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -62.0769, 3.1108, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -62.5385, 2.9569, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -63, 2.8031, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -63.4615, 2.6492, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -63.9231, 2.4954, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -64.3846, 2.3415, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -64.8462, 2.1877, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.3077, 2.0338, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.7692, 1.88, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -66.2308, 1.7262, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -66.6923, 1.5723, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -67.1538, 1.4185, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -67.6154, 1.2646, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -68.0769, 1.1108, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -68.5385, 0.9569, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -69, 0.8031, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -69.4615, 0.6492, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -69.9231, 0.4954, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -70.3846, 0.3415, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -70.8462, 0.1877, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -71.3077, 0.0338, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaOvestGradino26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -71.7692, -0.12, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0.3162, 0.9487, 0, 0.9487, -0.3162, -1, 0, 0, 65.9368, 1.8103, -4)
+use_collision = true
+size = Vector3(4, 0.4, 12.6491)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaPasserellaEstGradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 60.2308, 3.7262, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 60.6923, 3.5723, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 61.1538, 3.4185, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 61.6154, 3.2646, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 62.0769, 3.1108, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 62.5385, 2.9569, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 63, 2.8031, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 63.4615, 2.6492, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 63.9231, 2.4954, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 64.3846, 2.3415, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 64.8462, 2.1877, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 65.3077, 2.0338, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 65.7692, 1.88, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 66.2308, 1.7262, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 66.6923, 1.5723, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 67.1538, 1.4185, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 67.6154, 1.2646, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 68.0769, 1.1108, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 68.5385, 0.9569, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 69, 0.8031, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 69.4615, 0.6492, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 69.9231, 0.4954, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 70.3846, 0.3415, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 70.8462, 0.1877, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 71.3077, 0.0338, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaPasserellaEstGradino26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 71.7692, -0.12, -4)
+use_collision = false
+size = Vector3(4, 0.24, 0.4615)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 0.45, 7)
+use_collision = true
+size = Vector3(4, 0.9, 2.5)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 2.5, 7)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Lampione" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -85, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Lampione8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 2.5, -10.5)
+use_collision = true
+size = Vector3(0.25, 5, 0.25)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="PavimentoMensa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.5, -0.5, 36)
+use_collision = true
+size = Vector3(85, 1, 48)
+material = ExtResource("9_greybox_tile")
+
+[node name="MuroMensaOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115, 4, 36)
+use_collision = true
+size = Vector3(0.5, 8, 48)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroMensaSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.5, 4, 60)
+use_collision = true
+size = Vector3(85, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroMensaCentri" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 4, 23)
+use_collision = true
+size = Vector3(0.5, 8, 22)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroMensaCentri2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 4, 49)
+use_collision = true
+size = Vector3(0.5, 8, 22)
+material = ExtResource("11_greybox_concrete")
+
+[node name="TavoloMensa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0.4, 22)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0.4, 32)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0.4, 42)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88, 0.4, 22)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88, 0.4, 32)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88, 0.4, 42)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 0.4, 22)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 0.4, 32)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 0.4, 42)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0.4, 22)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0.4, 32)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloMensa12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 0.4, 42)
+use_collision = true
+size = Vector3(6, 0.8, 2)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="BanconeMensa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 0.55, 52)
+use_collision = true
+size = Vector3(18, 1.1, 1.6)
+material = ExtResource("3_greybox_accent")
+
+[node name="MuroCucina" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 2, 19)
+use_collision = true
+size = Vector3(0.5, 4, 14)
+material = ExtResource("2_greybox_wall")
+
+[node name="MuroCucina2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 2, 37)
+use_collision = true
+size = Vector3(0.5, 4, 14)
+material = ExtResource("2_greybox_wall")
+
+[node name="PavimentoAulario" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, -0.5, -48.5)
+use_collision = true
+size = Vector3(80, 1, 73)
+material = ExtResource("1_greybox_floor")
+
+[node name="MuroAularioOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115, 4, -48.5)
+use_collision = true
+size = Vector3(0.5, 8, 73)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroAularioNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 4, -85)
+use_collision = true
+size = Vector3(80, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroAularioBiblioteca" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 4, -66)
+use_collision = true
+size = Vector3(0.5, 8, 38)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroAularioBiblioteca2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 4, -27.5)
+use_collision = true
+size = Vector3(0.5, 8, 31)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroCorridoioNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111, 2.5, -48)
+use_collision = true
+size = Vector3(8, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioNord2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.75, 2.5, -48)
+use_collision = true
+size = Vector3(16.5, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioNord3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 2.5, -48)
+use_collision = true
+size = Vector3(17, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioNord4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.75, 2.5, -48)
+use_collision = true
+size = Vector3(17.5, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioNord5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.5, 2.5, -48)
+use_collision = true
+size = Vector3(9, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111, 2.5, -42)
+use_collision = true
+size = Vector3(8, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioSud2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.75, 2.5, -42)
+use_collision = true
+size = Vector3(16.5, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioSud3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 2.5, -42)
+use_collision = true
+size = Vector3(17, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioSud4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.75, 2.5, -42)
+use_collision = true
+size = Vector3(17.5, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroCorridoioSud5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.5, 2.5, -42)
+use_collision = true
+size = Vector3(9, 5, 0.5)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96, 2.5, -66.5)
+use_collision = true
+size = Vector3(0.5, 5, 37)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96, 2.5, -27)
+use_collision = true
+size = Vector3(0.5, 5, 30)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 2.5, -66.5)
+use_collision = true
+size = Vector3(0.5, 5, 37)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 2.5, -27)
+use_collision = true
+size = Vector3(0.5, 5, 30)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 2.5, -66.5)
+use_collision = true
+size = Vector3(0.5, 5, 37)
+material = ExtResource("5_greybox_yellow")
+
+[node name="MuroAula6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 2.5, -27)
+use_collision = true
+size = Vector3(0.5, 5, 30)
+material = ExtResource("5_greybox_yellow")
+
+[node name="LavagnaAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 2.2, -84.6)
+use_collision = true
+size = Vector3(8, 2, 0.12)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -76)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -71)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -66)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -61)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -56)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -51)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.6, 2.2, -27)
+use_collision = true
+size = Vector3(0.12, 2, 8)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -33)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -28)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -23)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 0.4, -18)
+use_collision = true
+size = Vector3(13, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 2.2, -84.6)
+use_collision = true
+size = Vector3(8, 2, 0.12)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -76)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -71)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -66)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -61)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -56)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -51)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.6, 2.2, -27)
+use_collision = true
+size = Vector3(0.12, 2, 8)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -33)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -28)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -23)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0.4, -18)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 2.2, -84.6)
+use_collision = true
+size = Vector3(8, 2, 0.12)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -76)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -71)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -66)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -61)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -56)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -51)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.6, 2.2, -27)
+use_collision = true
+size = Vector3(0.12, 2, 8)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -33)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -28)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula29" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -23)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula30" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0.4, -18)
+use_collision = true
+size = Vector3(14, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 2.2, -84.6)
+use_collision = true
+size = Vector3(8, 2, 0.12)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula31" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -76)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula32" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -71)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula33" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -66)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula34" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -61)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula35" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -56)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula36" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -51)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="LavagnaAula8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.6, 2.2, -27)
+use_collision = true
+size = Vector3(0.12, 2, 8)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoAula37" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -33)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula38" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -28)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula39" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -23)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="BancoAula40" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 0.4, -18)
+use_collision = true
+size = Vector3(15, 0.8, 1.2)
+material = ExtResource("5_greybox_yellow")
+visibility_range_end = 70
+
+[node name="PavimentoBiblioteca" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -48.5)
+use_collision = true
+size = Vector3(70, 1, 73)
+material = ExtResource("1_greybox_floor")
+
+[node name="MuroBibliotecaNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -85)
+use_collision = true
+size = Vector3(70, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroBibliotecaTorre" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 4, -66)
+use_collision = true
+size = Vector3(0.5, 8, 38)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroBibliotecaTorre2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 4, -27.5)
+use_collision = true
+size = Vector3(0.5, 8, 31)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Soppalco" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -78.375)
+use_collision = true
+size = Vector3(69.5, 0.5, 12.75)
+material = ExtResource("2_greybox_wall")
+
+[node name="PilastroSoppalco" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 1.875, -72.5)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroSoppalco2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.875, -72.5)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroSoppalco3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1.875, -72.5)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroSoppalco4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 1.875, -72.5)
+use_collision = true
+size = Vector3(0.8, 3.75, 0.8)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RingheraSoppalco" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.475, 4.55, -71.9)
+use_collision = true
+size = Vector3(12.55, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="RingheraSoppalco2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.55, -71.9)
+use_collision = true
+size = Vector3(35.6, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="RingheraSoppalco3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.475, 4.55, -71.9)
+use_collision = true
+size = Vector3(12.55, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="ScalaSoppalcoRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 0.961, 0.2765, 0, 0.2765, -0.961, -20, 1.8078, -65.0053)
+use_collision = true
+size = Vector3(4, 0.4, 14.4641)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaSoppalcoGradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.0133, -58.2317)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.1467, -58.695)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.28, -59.1583)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.4133, -59.6217)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.5467, -60.085)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.68, -60.5483)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.8133, -61.0117)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 0.9467, -61.475)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.08, -61.9383)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.2133, -62.4017)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.3467, -62.865)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.48, -63.3283)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.6133, -63.7917)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.7467, -64.255)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 1.88, -64.7183)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.0133, -65.1817)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.1467, -65.645)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.28, -66.1083)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.4133, -66.5717)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.5467, -67.035)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.68, -67.4983)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.8133, -67.9617)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 2.9467, -68.425)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.08, -68.8883)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.2133, -69.3517)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.3467, -69.815)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.48, -70.2783)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.6133, -70.7417)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino29" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.7467, -71.205)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino30" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -20, 3.88, -71.6683)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoRampa2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 0.961, 0.2765, 0, 0.2765, -0.961, 20, 1.8078, -65.0053)
+use_collision = true
+size = Vector3(4, 0.4, 14.4641)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaSoppalcoGradino31" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.0133, -58.2317)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino32" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.1467, -58.695)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino33" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.28, -59.1583)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino34" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.4133, -59.6217)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino35" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.5467, -60.085)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino36" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.68, -60.5483)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino37" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.8133, -61.0117)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino38" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 0.9467, -61.475)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino39" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.08, -61.9383)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino40" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.2133, -62.4017)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino41" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.3467, -62.865)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino42" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.48, -63.3283)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino43" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.6133, -63.7917)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino44" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.7467, -64.255)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino45" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 1.88, -64.7183)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino46" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.0133, -65.1817)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino47" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.1467, -65.645)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino48" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.28, -66.1083)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino49" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.4133, -66.5717)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino50" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.5467, -67.035)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino51" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.68, -67.4983)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino52" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.8133, -67.9617)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino53" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 2.9467, -68.425)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino54" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.08, -68.8883)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino55" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.2133, -69.3517)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino56" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.3467, -69.815)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino57" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.48, -70.2783)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino58" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.6133, -70.7417)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino59" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.7467, -71.205)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaSoppalcoGradino60" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, 3.88, -71.6683)
+use_collision = false
+size = Vector3(4, 0.24, 0.4633)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Scaffale" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -20)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -20)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -20)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -20)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -26)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -26)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -26)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -26)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -32)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -32)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -32)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -32)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -38)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -38)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -38)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -38)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -44)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -44)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -44)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -44)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 1.6, -50)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.6, -50)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.6, -50)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 1.6, -50)
+use_collision = true
+size = Vector3(10, 3.2, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 5.4, -80)
+use_collision = true
+size = Vector3(10, 2.8, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 5.4, -80)
+use_collision = true
+size = Vector3(10, 2.8, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 5.4, -80)
+use_collision = true
+size = Vector3(10, 2.8, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="Scaffale28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 5.4, -80)
+use_collision = true
+size = Vector3(10, 2.8, 1)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="TavoloLettura" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.4, -62)
+use_collision = true
+size = Vector3(4, 0.8, 6)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="TavoloLettura2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.4, -62)
+use_collision = true
+size = Vector3(4, 0.8, 6)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="PavimentoTorre" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -0.5, -48.5)
+use_collision = true
+size = Vector3(80, 1, 73)
+material = ExtResource("1_greybox_floor")
+
+[node name="MuroTorreNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 4, -85)
+use_collision = true
+size = Vector3(80, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroTorreEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115, 4, -48.5)
+use_collision = true
+size = Vector3(0.5, 8, 73)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FacciataNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 6, -75)
+use_collision = true
+size = Vector3(40, 12, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FacciataSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.5, 6, -35)
+use_collision = true
+size = Vector3(17, 12, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FacciataSud2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86.5, 6, -35)
+use_collision = true
+size = Vector3(17, 12, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Architrave" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 8, -35)
+use_collision = true
+size = Vector3(6, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FacciataOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55, 6, -55)
+use_collision = true
+size = Vector3(0.5, 12, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FacciataEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 6, -55)
+use_collision = true
+size = Vector3(0.5, 12, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="FasciaFinestre" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 5.2, -75.3)
+use_collision = false
+size = Vector3(38, 1.2, 0.12)
+material = ExtResource("7_greybox_blue")
+
+[node name="FasciaFinestre2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 5.2, -34.7)
+use_collision = false
+size = Vector3(38, 1.2, 0.12)
+material = ExtResource("7_greybox_blue")
+
+[node name="FasciaFinestre3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 9.2, -75.3)
+use_collision = false
+size = Vector3(38, 1.2, 0.12)
+material = ExtResource("7_greybox_blue")
+
+[node name="FasciaFinestre4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 9.2, -34.7)
+use_collision = false
+size = Vector3(38, 1.2, 0.12)
+material = ExtResource("7_greybox_blue")
+
+[node name="ScalaTorre1Rampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 0.8662, 0.4997, 0, 0.4997, -0.8662, 58, 2.8268, -43.2999)
+use_collision = true
+size = Vector3(4, 0.4, 12.0067)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaTorre1Gradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 0.1409, -38.2261)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 0.4017, -38.6783)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 0.6626, -39.1304)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 0.9235, -39.5826)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 1.1843, -40.0348)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 1.4452, -40.487)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 1.7061, -40.9391)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 1.967, -41.3913)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 2.2278, -41.8435)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 2.4887, -42.2957)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 2.7496, -42.7478)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 3.0104, -43.2)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 3.2713, -43.6522)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 3.5322, -44.1043)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 3.793, -44.5565)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 4.0539, -45.0087)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 4.3148, -45.4609)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 4.5757, -45.913)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 4.8365, -46.3652)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 5.0974, -46.8174)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 5.3583, -47.2696)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 5.6191, -47.7217)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre1Gradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 58, 5.88, -48.1739)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Pianerottolo" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.875, 5.75, -50.9)
+use_collision = true
+size = Vector3(11.25, 0.5, 5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="ScalaTorre2Rampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.8662, 0.4997, 0, -0.4997, 0.8662, 64, 8.8268, -43.1001)
+use_collision = true
+size = Vector3(4, 0.4, 12.0067)
+material = ExtResource("3_greybox_accent")
+
+[node name="ScalaTorre2Gradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 6.1409, -48.1739)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 6.4017, -47.7217)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 6.6626, -47.2696)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 6.9235, -46.8174)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 7.1843, -46.3652)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 7.4452, -45.913)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 7.7061, -45.4609)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 7.967, -45.0087)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 8.2278, -44.5565)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 8.4887, -44.1043)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 8.7496, -43.6522)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 9.0104, -43.2)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 9.2713, -42.7478)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 9.5322, -42.2957)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 9.793, -41.8435)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 10.0539, -41.3913)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 10.3148, -40.9391)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 10.5757, -40.487)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 10.8365, -40.0348)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.0974, -39.5826)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.3583, -39.1304)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.6191, -38.6783)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="ScalaTorre2Gradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.88, -38.2261)
+use_collision = false
+size = Vector3(4, 0.24, 0.4522)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="RingheraScalaTorre" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.8662, 0.4997, 0, -0.4997, 0.8662, 61.9, 10.0204, -42.7502)
+use_collision = true
+size = Vector3(0.15, 1.8, 12.0067)
+material = ExtResource("8_greybox_dark")
+
+[node name="RingheraScalaTorre2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.8662, 0.4997, 0, -0.4997, 0.8662, 66.1, 10.0204, -42.7502)
+use_collision = true
+size = Vector3(0.15, 1.8, 12.0067)
+material = ExtResource("8_greybox_dark")
+
+[node name="Tetto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.5, 11.75, -55)
+use_collision = true
+size = Vector3(7, 0.5, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Tetto2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.5, 11.75, -55)
+use_collision = true
+size = Vector3(29, 0.5, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Tetto3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.75, -61.7)
+use_collision = true
+size = Vector3(4, 0.5, 26.6)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Tetto4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 11.75, -36.5)
+use_collision = true
+size = Vector3(4, 0.5, 3)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Parapetto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 12.6, -74.9)
+use_collision = true
+size = Vector3(40, 1.2, 0.3)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Parapetto2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 12.6, -35.1)
+use_collision = true
+size = Vector3(40, 1.2, 0.3)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Parapetto3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.1, 12.6, -55)
+use_collision = true
+size = Vector3(0.3, 1.2, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="Parapetto4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.9, 12.6, -55)
+use_collision = true
+size = Vector3(0.3, 1.2, 40)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RingheraBotola" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 12.55, -48.3)
+use_collision = true
+size = Vector3(4.2, 1.1, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="Eliporto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 12.03, -55)
+use_collision = false
+size = Vector3(14, 0.06, 14)
+material = ExtResource("4_greybox_danger")
+
+[node name="PilastroTorre" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 5.75, -65)
+use_collision = true
+size = Vector3(1.2, 11.5, 1.2)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroTorre2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 5.75, -45)
+use_collision = true
+size = Vector3(1.2, 11.5, 1.2)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroTorre3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 5.75, -65)
+use_collision = true
+size = Vector3(1.2, 11.5, 1.2)
+material = ExtResource("11_greybox_concrete")
+
+[node name="PilastroTorre4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 5.75, -45)
+use_collision = true
+size = Vector3(1.2, 11.5, 1.2)
+material = ExtResource("11_greybox_concrete")
+
+[node name="BancoLab" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0.45, -70)
+use_collision = true
+size = Vector3(6, 0.9, 1.4)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoLab2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0.45, -55)
+use_collision = true
+size = Vector3(6, 0.9, 1.4)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BancoLab3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 0.45, -55)
+use_collision = true
+size = Vector3(6, 0.9, 1.4)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="Albero7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 2.5, -25)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0.45, -25)
+use_collision = true
+size = Vector3(3, 0.9, 3)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 2.5, -25)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0.45, -25)
+use_collision = true
+size = Vector3(3, 0.9, 3)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 2.5, -80)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0.45, -80)
+use_collision = true
+size = Vector3(3, 0.9, 3)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Albero10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 2.5, -80)
+use_collision = true
+size = Vector3(0.7, 5, 0.7)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="Aiuola10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0.45, -80)
+use_collision = true
+size = Vector3(3, 0.9, 3)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="PavimentoParcheggio" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.5, -0.5, 18)
+use_collision = true
+size = Vector3(85, 1, 12)
+material = ExtResource("1_greybox_floor")
+
+[node name="PavimentoParcheggio2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, -0.5, 33)
+use_collision = true
+size = Vector3(70, 1, 18)
+material = ExtResource("1_greybox_floor")
+
+[node name="PavimentoParcheggio3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.5, -0.5, 33)
+use_collision = true
+size = Vector3(7, 1, 18)
+material = ExtResource("1_greybox_floor")
+
+[node name="PavimentoParcheggio4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.5, -0.5, 65)
+use_collision = true
+size = Vector3(85, 1, 46)
+material = ExtResource("1_greybox_floor")
+
+[node name="MuroParcheggioOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 4, 23)
+use_collision = true
+size = Vector3(0.5, 8, 22)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroParcheggioOvest2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 4, 63)
+use_collision = true
+size = Vector3(0.5, 8, 50)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroParcheggioEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115, 4, 50)
+use_collision = true
+size = Vector3(0.5, 8, 76)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroParcheggioSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.5, 4, 88)
+use_collision = true
+size = Vector3(85, 8, 0.5)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RecinzioneRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.75, 1.3, 33)
+use_collision = true
+size = Vector3(0.15, 2.6, 18)
+material = ExtResource("8_greybox_dark")
+
+[node name="RecinzioneRampa2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.25, 1.3, 33)
+use_collision = true
+size = Vector3(0.15, 2.6, 18)
+material = ExtResource("8_greybox_dark")
+
+[node name="RecinzioneRampa3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, 1.3, 42)
+use_collision = true
+size = Vector3(8.5, 2.6, 0.15)
+material = ExtResource("8_greybox_dark")
+
+[node name="Auto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.7, 20)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="AutoTetto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 1.7, 20.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0.7, 20)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("4_greybox_danger")
+visibility_range_end = 70
+
+[node name="AutoTetto2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 1.7, 20.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 0.7, 20)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="AutoTetto3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 1.7, 20.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.7, 32)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="AutoTetto4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 1.7, 32.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0.7, 32)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="AutoTetto5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 1.7, 32.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0.7, 50)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("4_greybox_danger")
+visibility_range_end = 70
+
+[node name="AutoTetto6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 1.7, 50.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0.7, 50)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="AutoTetto7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 1.7, 50.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 0.7, 50)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="AutoTetto8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 1.7, 50.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0.7, 62)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("7_greybox_blue")
+visibility_range_end = 70
+
+[node name="AutoTetto9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 1.7, 62.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78, 0.7, 62)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("4_greybox_danger")
+visibility_range_end = 70
+
+[node name="AutoTetto10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78, 1.7, 62.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Auto11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84, 0.7, 62)
+use_collision = true
+size = Vector3(2, 1.4, 4.4)
+material = ExtResource("3_greybox_accent")
+visibility_range_end = 70
+
+[node name="AutoTetto11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84, 1.7, 62.3)
+use_collision = true
+size = Vector3(1.8, 0.6, 2.2)
+material = ExtResource("8_greybox_dark")
+visibility_range_end = 70
+
+[node name="Camion" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 1.4, 22)
+use_collision = true
+size = Vector3(3, 2.8, 8)
+material = ExtResource("6_greybox_green")
+
+[node name="CamionCabina" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 1.2, 17)
+use_collision = true
+size = Vector3(3, 2.4, 2.4)
+material = ExtResource("8_greybox_dark")
+
+[node name="Camion2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 1.4, 75)
+use_collision = true
+size = Vector3(3, 2.8, 8)
+material = ExtResource("6_greybox_green")
+
+[node name="CamionCabina2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 1.2, 70)
+use_collision = true
+size = Vector3(3, 2.4, 2.4)
+material = ExtResource("8_greybox_dark")
+
+[node name="StazioneNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.75, 2.5, 70)
+use_collision = true
+size = Vector3(9.5, 5, 0.5)
+material = ExtResource("2_greybox_wall")
+
+[node name="StazioneNord2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.25, 2.5, 70)
+use_collision = true
+size = Vector3(9.5, 5, 0.5)
+material = ExtResource("2_greybox_wall")
+
+[node name="StazioneOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 2.5, 79)
+use_collision = true
+size = Vector3(0.5, 5, 18)
+material = ExtResource("2_greybox_wall")
+
+[node name="StazioneEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 2.5, 79)
+use_collision = true
+size = Vector3(0.5, 5, 18)
+material = ExtResource("2_greybox_wall")
+
+[node name="StazioneTetto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 5.25, 78.875)
+use_collision = true
+size = Vector3(24.5, 0.5, 18.25)
+material = ExtResource("11_greybox_concrete")
+
+[node name="TornelliChiusi" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0.6, 80)
+use_collision = true
+size = Vector3(14, 1.2, 0.5)
+material = ExtResource("4_greybox_danger")
+
+[node name="PavimentoLab" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -7.5, 58)
+use_collision = true
+size = Vector3(60, 1, 44)
+material = ExtResource("9_greybox_tile")
+
+[node name="PavimentoRampaLab" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -7.5, 29)
+use_collision = true
+size = Vector3(8.5, 1, 14)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RampaMezziRampa" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.932, -0.3624, 0, 0.3624, 0.932, 104, -3.6864, 32.9275)
+use_collision = true
+size = Vector3(8, 0.4, 19.3132)
+material = ExtResource("11_greybox_concrete")
+
+[node name="RampaMezziGradino" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -0.295, 24.225)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -0.47, 24.675)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -0.645, 25.125)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -0.82, 25.575)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -0.995, 26.025)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -1.17, 26.475)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -1.345, 26.925)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -1.52, 27.375)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -1.695, 27.825)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -1.87, 28.275)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.045, 28.725)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.22, 29.175)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.395, 29.625)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.57, 30.075)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.745, 30.525)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -2.92, 30.975)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.095, 31.425)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.27, 31.875)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.445, 32.325)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.62, 32.775)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.795, 33.225)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -3.97, 33.675)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -4.145, 34.125)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino24" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -4.32, 34.575)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino25" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -4.495, 35.025)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino26" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -4.67, 35.475)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino27" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -4.845, 35.925)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino28" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.02, 36.375)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino29" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.195, 36.825)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino30" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.37, 37.275)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino31" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.545, 37.725)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino32" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.72, 38.175)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino33" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -5.895, 38.625)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino34" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.07, 39.075)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino35" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.245, 39.525)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino36" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.42, 39.975)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino37" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.595, 40.425)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino38" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.77, 40.875)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino39" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -6.945, 41.325)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="RampaMezziGradino40" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, -7.12, 41.775)
+use_collision = false
+size = Vector3(8, 0.24, 0.45)
+material = ExtResource("11_greybox_concrete")
+visibility_range_end = 70
+
+[node name="MuroRampaLab" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.75, -3.5, 32)
+use_collision = true
+size = Vector3(0.5, 7, 20)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroRampaLab2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.25, -3.5, 32)
+use_collision = true
+size = Vector3(0.5, 7, 20)
+material = ExtResource("11_greybox_concrete")
+
+[node name="MuroLabNord" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.875, -4, 36)
+use_collision = true
+size = Vector3(49.75, 6, 0.5)
+material = ExtResource("2_greybox_wall")
+
+[node name="MuroLabNord2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.125, -4, 36)
+use_collision = true
+size = Vector3(1.75, 6, 0.5)
+material = ExtResource("2_greybox_wall")
+
+[node name="MuroLabSud" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -4, 80)
+use_collision = true
+size = Vector3(60, 6, 0.5)
+material = ExtResource("2_greybox_wall")
+
+[node name="MuroLabOvest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, -4, 58)
+use_collision = true
+size = Vector3(0.5, 6, 44)
+material = ExtResource("2_greybox_wall")
+
+[node name="MuroLabEst" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110, -4, 58)
+use_collision = true
+size = Vector3(0.5, 6, 44)
+material = ExtResource("2_greybox_wall")
+
+[node name="ProgettoSegreto" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -5, 58)
+use_collision = true
+size = Vector3(6, 4, 6)
+material = ExtResource("4_greybox_danger")
+
+[node name="ProgettoBase" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -6.75, 58)
+use_collision = true
+size = Vector3(9, 0.5, 9)
+material = ExtResource("8_greybox_dark")
+
+[node name="BanconeLab" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, -6.55, 44)
+use_collision = true
+size = Vector3(8, 0.9, 1.5)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BanconeLab2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, -6.55, 72)
+use_collision = true
+size = Vector3(8, 0.9, 1.5)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BanconeLab3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, -6.55, 72)
+use_collision = true
+size = Vector3(8, 0.9, 1.5)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="BanconeLab4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, -6.55, 44)
+use_collision = true
+size = Vector3(8, 0.9, 1.5)
+material = ExtResource("10_greybox_white")
+visibility_range_end = 70
+
+[node name="CasseEsercito" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, -6.4, 58)
+use_collision = true
+size = Vector3(2.4, 1.2, 2.4)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="CasseEsercito2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96, -6.4, 50)
+use_collision = true
+size = Vector3(2.4, 1.2, 2.4)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="CasseEsercito3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96, -6.4, 62)
+use_collision = true
+size = Vector3(2.4, 1.2, 2.4)
+material = ExtResource("6_greybox_green")
+visibility_range_end = 70
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="PortaCentriViale" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 12)
+script = ExtResource("31_zone_door")
+price = 250
+opens = Array[StringName]([&"viale_ovest", &"viale_est"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaCentriMensa" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -30, 0, 36)
+script = ExtResource("31_zone_door")
+price = 300
+opens = Array[StringName]([&"mensa"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaCentriParcheggio" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 30, 0, 36)
+script = ExtResource("31_zone_door")
+price = 600
+opens = Array[StringName]([&"parcheggio"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaVialeMensa" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 0, 12)
+script = ExtResource("31_zone_door")
+price = 300
+opens = Array[StringName]([&"mensa"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaVialeParcheggio" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0, 12)
+script = ExtResource("31_zone_door")
+price = 600
+opens = Array[StringName]([&"parcheggio"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaVialeAulario" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0, -12)
+script = ExtResource("31_zone_door")
+price = 400
+opens = Array[StringName]([&"aulario"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaVialeBiblioteca" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
+script = ExtResource("31_zone_door")
+price = 400
+opens = Array[StringName]([&"biblioteca"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaVialeTorre" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0, -12)
+script = ExtResource("31_zone_door")
+price = 750
+opens = Array[StringName]([&"torre"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaAularioBiblioteca" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -35, 0, -45)
+script = ExtResource("31_zone_door")
+price = 400
+opens = Array[StringName]([&"aulario", &"biblioteca"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaBibliotecaTorre" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 35, 0, -45)
+script = ExtResource("31_zone_door")
+price = 750
+opens = Array[StringName]([&"biblioteca", &"torre"])
+size = Vector3(4, 3.2, 0.3)
+
+[node name="PortaLaboratori" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104, 0, 23.8)
+script = ExtResource("31_zone_door")
+price = 1000
+opens = Array[StringName]([&"laboratori"])
+size = Vector3(8.5, 3.6, 0.4)
+
+[node name="PortaTetto" type="StaticBody3D" parent="Doors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 6, -48.7)
+script = ExtResource("31_zone_door")
+price = 1500
+opens = Array[StringName]([&"tetto"])
+size = Vector3(4.6, 3.2, 0.3)
+
+[node name="Destructibles" type="Node3D" parent="." groups=["navigation_source"]]
+
+[node name="MurettoVialeA" type="Node3D" parent="Destructibles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 2)
+script = ExtResource("32_destructible_blocks")
+size = Vector3(6, 1.6, 0.5)
+color = Color(0.65, 0.63, 0.6, 1)
+
+[node name="MurettoVialeB" type="Node3D" parent="Destructibles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 3)
+script = ExtResource("32_destructible_blocks")
+size = Vector3(6, 1.6, 0.5)
+color = Color(0.65, 0.63, 0.6, 1)
+
+[node name="MurettoVialeC" type="Node3D" parent="Destructibles"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 90, 0, -3)
+script = ExtResource("32_destructible_blocks")
+size = Vector3(5, 1.6, 0.5)
+color = Color(0.65, 0.63, 0.6, 1)
+
+[node name="MurettoParcheggio" type="Node3D" parent="Destructibles"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 75, 0, 35)
+script = ExtResource("32_destructible_blocks")
+size = Vector3(6, 1.8, 0.5)
+color = Color(0.65, 0.63, 0.6, 1)
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Luce1" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 68)
+light_color = Color(1.0, 0.92, 0.75, 1)
+light_energy = 1.3
+omni_range = 14
+
+[node name="Luce2" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 78)
+light_color = Color(1.0, 0.92, 0.75, 1)
+light_energy = 1.3
+omni_range = 14
+
+[node name="Luce3" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 87)
+light_color = Color(1.0, 0.92, 0.75, 1)
+light_energy = 1.3
+omni_range = 14
+
+[node name="Luce4" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2, 55)
+light_color = Color(1.0, 0.95, 0.85, 1)
+light_energy = 1
+omni_range = 10
+
+[node name="Luce5" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 3.6, -42)
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 1.2
+omni_range = 16
+
+[node name="Luce6" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 3.6, -55)
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 1.2
+omni_range = 16
+
+[node name="Luce7" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 3.6, -68)
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 1.2
+omni_range = 16
+
+[node name="Luce8" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 4.5, 78)
+light_color = Color(1.0, 0.85, 0.6, 1)
+light_energy = 1
+omni_range = 10
+
+[node name="Luce9" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, -1.8, 50)
+light_color = Color(0.75, 0.9, 1.0, 1)
+light_energy = 1.3
+omni_range = 16
+
+[node name="Luce10" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, -1.8, 50)
+light_color = Color(0.75, 0.9, 1.0, 1)
+light_energy = 1.3
+omni_range = 16
+
+[node name="Luce11" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, -1.8, 68)
+light_color = Color(0.75, 0.9, 1.0, 1)
+light_energy = 1.3
+omni_range = 16
+
+[node name="Luce12" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, -1.8, 68)
+light_color = Color(0.75, 0.9, 1.0, 1)
+light_energy = 1.3
+omni_range = 16
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Run" type="Node" parent="."]
+script = ExtResource("28_run_manager")
+
+[node name="Waves" type="Node3D" parent="."]
+script = ExtResource("24_wave_director")
+enemies = Array[Resource]([ExtResource("25_walker_wave"), ExtResource("26_runner_wave"), ExtResource("27_brute_wave")])
+
+[node name="SpawnAula" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.6, -6, 88.2)
+
+[node name="SpawnAula2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.6, -6, 88.2)
+
+[node name="SpawnCentri" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 15)
+
+[node name="SpawnCentri2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 15)
+
+[node name="SpawnCentri3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 57)
+
+[node name="SpawnCentri4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 57)
+
+[node name="SpawnVialeOvest" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112, 0, 0)
+
+[node name="SpawnVialeOvest2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 0, 9)
+
+[node name="SpawnVialeOvest3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90, 0, -9)
+
+[node name="SpawnVialeEst" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0, 0)
+
+[node name="SpawnVialeEst2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 9)
+
+[node name="SpawnVialeEst3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 0, -9)
+
+[node name="SpawnMensa" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112, 0, 15)
+
+[node name="SpawnMensa2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112, 0, 57)
+
+[node name="SpawnMensa3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 0, 15)
+
+[node name="SpawnMensa4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80, 0, 57)
+
+[node name="SpawnAulario" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112, 0, -82)
+
+[node name="SpawnAulario2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0, -82)
+
+[node name="SpawnAulario3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112, 0, -15)
+
+[node name="SpawnAulario4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0, -45)
+
+[node name="SpawnBiblioteca" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, -82)
+
+[node name="SpawnBiblioteca2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -82)
+
+[node name="SpawnBiblioteca3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, -15)
+
+[node name="SpawnBiblioteca4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -15)
+
+[node name="SpawnTorre" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 0, -82)
+
+[node name="SpawnTorre2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0, -82)
+
+[node name="SpawnTorre3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0, -15)
+
+[node name="SpawnTorre4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 0, -70)
+
+[node name="SpawnTetto" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 12, -72)
+
+[node name="SpawnTetto2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, 12, -72)
+
+[node name="SpawnTetto3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, 12, -38)
+
+[node name="SpawnParcheggio" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0, 15)
+
+[node name="SpawnParcheggio2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0, 85)
+
+[node name="SpawnParcheggio3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33, 0, 85)
+
+[node name="SpawnParcheggio4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0, 85)
+
+[node name="SpawnParcheggio5" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, 30)
+
+[node name="SpawnLab" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -7, 78)
+
+[node name="SpawnLab2" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108, -7, 78)
+
+[node name="SpawnLab3" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -7, 38)
+
+[node name="SpawnLab4" type="Marker3D" parent="Waves"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -7, 46)
+
+[node name="Crates" type="Node3D" parent="."]
+
+[node name="CassaCentri" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0, 22)
+
+[node name="CassaViale" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -100, 0, 9.5)
+
+[node name="CassaMensa" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110, 0, 55)
+
+[node name="CassaAulario" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -110, 0, -80)
+
+[node name="CassaSoppalco" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -83)
+
+[node name="CassaTorre" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 90, 0, -40)
+
+[node name="CassaParcheggio" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110, 0, 84)
+
+[node name="CassaLab" parent="Crates" instance=ExtResource("22_weapon_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -7, 76)
+
+[node name="Machines" type="Node3D" parent="."]
+
+[node name="MerendinaCentri" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -6, 0, 59.1)
+boost = ExtResource("36_merendina")
+
+[node name="EspressoViale" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 55, 0, 11.1)
+boost = ExtResource("34_espresso")
+
+[node name="EspressoMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -58, 0, 59.1)
+boost = ExtResource("34_espresso")
+
+[node name="DoppioMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -56.8, 0, 59.1)
+boost = ExtResource("35_doppio")
+
+[node name="MerendinaMensa" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -55.6, 0, 59.1)
+boost = ExtResource("36_merendina")
+
+[node name="DoppioTorre" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 94.4, 0, -60)
+boost = ExtResource("35_doppio")
+
+[node name="EspressoStazione" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 61.4, 0, 82)
+boost = ExtResource("34_espresso")
+
+[node name="MerendinaLab" parent="Machines" instance=ExtResource("23_vending_machine")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 50.6, -7, 44)
+boost = ExtResource("36_merendina")
+
+[node name="Elicottero" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 12, -55)
+script = ExtResource("33_helicopter")
+radio_offset = Vector3(-12, 0, 12)
+
+[node name="Pickups" type="Node3D" parent="."]
+
+[node name="Labels" type="Node3D" parent="."]
+
+[node name="ScrittaAulastudio" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.7, 62.4)
+billboard = 1
+text = "Aula studio"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaCentricomuni" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 30)
+billboard = 1
+text = "Centri comuni"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaViale" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 6.5, 0)
+billboard = 1
+text = "Viale"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaViale2" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 6.5, 0)
+billboard = 1
+text = "Viale"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaMensaebar" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72, 6, 36)
+billboard = 1
+text = "Mensa e bar"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA1" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 4.2, -66.5)
+billboard = 1
+text = "A1"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA5" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, 4.2, -27)
+billboard = 1
+text = "A5"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA2" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 4.2, -66.5)
+billboard = 1
+text = "A2"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA6" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 4.2, -27)
+billboard = 1
+text = "A6"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA3" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 4.2, -66.5)
+billboard = 1
+text = "A3"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA7" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 4.2, -27)
+billboard = 1
+text = "A7"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA4" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 4.2, -66.5)
+billboard = 1
+text = "A4"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaA8" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 4.2, -27)
+billboard = 1
+text = "A8"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaAulario" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 6.5, -45)
+billboard = 1
+text = "Aulario"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaBiblioteca" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, -45)
+billboard = 1
+text = "Biblioteca"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaTorredeidipartimenti" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 16, -34)
+billboard = 1
+text = "Torre dei dipartimenti"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaTetto" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 15, -55)
+billboard = 1
+text = "Tetto"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaParcheggio" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 6, 40)
+billboard = 1
+text = "Parcheggio"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaStazioneMonteSantArcangelo" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 7, 70)
+billboard = 1
+text = "Stazione Monte Sant'Arcangelo"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0
+
+[node name="ScrittaLaboratori" type="Label3D" parent="Labels"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -2, 40)
+billboard = 1
+text = "Laboratori"
+font_size = 96
+outline_size = 16
+visibility_range_end = 45.0

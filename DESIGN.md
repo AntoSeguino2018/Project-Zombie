@@ -16,9 +16,11 @@ Ogni nuova idea si confronta con questi tre punti. Se non ne rafforza nessuno, p
 2. ✅ **Zombie mai visti.** Tanti modelli diversi, ognuno con un comportamento riconoscibile e caratteristiche atipiche per uno zombie. Colorati, non horror.
 3. 💡 **Caos co-op leggero.** Si gioca con gli amici per ridere: situazioni assurde, combo esagerate, poca serietà.
 
-## Da dove nasce (e cosa non si vede)
+## Da dove nasce
 - ✅ L'ispirazione viene dal vostro gruppo universitario: persone, posti, coffee break, meme.
-- ✅ **Nel gioco non ci sono riferimenti espliciti all'università.** È un gioco sugli zombie: le vostre battute sono il "DNA" nascosto di armi, nemici, nomi e dettagli, riconoscibile solo da chi le conosce.
+- ✅ **La storia (8 novembre 2026):** i protagonisti sono studenti di ingegneria che, durante un'apocalisse zombie, restano bloccati all'università. Sopravvivono grazie alle armi, ma soprattutto ai **progetti segreti del campus**, sviluppati in team con l'esercito: è per questo che in giro ci sono armi così assurde, proiettili da carro armato e laboratori nascosti.
+- ✅ **L'università si vede, con i nomi storpiati.** I posti sono ispirati al campus di Monte Sant'Angelo della Federico II, ma nel gioco si chiamano **"Monte Sant'Arcangelo"** e **"Università Federico III"**: chi c'è stato li riconosce, e se un giorno il gioco esce non ci sono marchi veri. *(Sostituisce la vecchia regola "nessun riferimento esplicito all'università".)*
+- ✅ Le vostre battute restano il "DNA" di armi, nemici, nomi e dettagli.
 - 💡 I meme nuovi che nascono ogni mese possono diventare easter egg, nomi di oggetti e varianti di armi. È un modo naturale per aggiornare il gioco nel tempo.
 
 ---
@@ -34,7 +36,15 @@ Ogni nuova idea si confronta con questi tre punti. Se non ne rafforza nessuno, p
 ### Il mondo
 ✅ Base reale: le aule studio gialle, alte, con tavoli e lavagne, "che sembrano le backrooms".
 
-💡 Proposta:
+✅ **La mappa è il campus di Monte Sant'Arcangelo** (passo 3.7, scheda in [docs/mappa/campus.md](docs/mappa/campus.md)):
+- grande (circa 230 × 180 m), divisa in zone: aula studio sotterranea, Centri comuni, viale con la passerella, mensa, aulario, biblioteca, torre dei dipartimenti con il tetto, parcheggio con la stazione, laboratori segreti sotto il parcheggio;
+- **si parte da una stanza sotterranea simile a un'aula studio**, con una lavagna bianca enorme su tutta la parete sinistra guardando l'uscita; si esce salendo le scale;
+- **la mappa si sblocca spendendo soldi** in punti precisi (porte), come la modalità zombi di Black Ops 2. I costi sono provvisori: si cambiano in `tools/build_campus.py`;
+- **le zone sono anche i "chunk"** per la rete e le ondate: con al massimo 4 giocatori si lavora su al massimo 4 zone alla volta (più quelle accanto).
+
+Il vecchio "Complesso" (passo 3.6) resta nei file per i test, ma non si gioca più.
+
+💡 Proposta precedente (il Complesso), superata dal campus:
 - Il mondo è **il Complesso**: un'architettura enorme e un po' assurda di stanze gialle, corridoi, sale alte, scantinati e locali tecnici.
 - Il tono non è inquietante:
   - all'inizio è solo "strano" (luci al neon, ronzio, tutto uguale)
@@ -112,6 +122,12 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 
 ---
 
+### Armi bianche e proiettili da carro armato
+✅ Decisi l'8 novembre 2026 (passi 3.9 e 3.10):
+- **Armi bianche** in un **terzo slot** dedicato (tasto 3), oltre alle due armi da fuoco: **martello piccolo** da fabbro, **martellone** a due mani (molto basilare) e **katana**. Si comprano **appese al muro** in punti fissi della mappa, e ogni tanto escono anche dalle casse.
+- **Proiettili da carro armato** sparsi per la mappa, vicino ai mezzi dell'esercito e nei laboratori. Si portano **in spalla**.
+- **La combo:** se un giocatore ha un proiettile in spalla e un compagno lo colpisce con il martello (piccolo o grande), il proiettile parte a razzo come un colpo di bazooka, **nella direzione in cui guarda chi lo porta**. Chi porta mira, chi martella fa da grilletto.
+
 ## Boost: le macchinette
 ✅ Le macchinette del caffè danno i boost (nascono dai coffee break).
 
@@ -164,7 +180,8 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 
 ## Struttura della run
 ✅ Per ora:
-- **Una sola mappa, molto grande.**
+- **Una sola mappa, molto grande:** il campus, che si apre a pagamento zona per zona.
+- ✅ **Come si vince (provvisorio, per provare):** sul tetto della torre c'è un elicottero che costa moltissimo (5.000 €, tutti possono versare); arriva dopo un po' e porta a casa chi sale (passo 3.8).
 - **La run è fatta di ondate di zombie.** A ogni ondata non cresce il numero di zombie, ma un **budget di pericolosità**:
   - ogni tipo di zombie ha un costo che misura quanto è pericoloso (es. Camminatore 1, Bestione 5);
   - l'ondata "spende" il budget scegliendo i tipi ogni volta in modo diverso: con 6 punti possono arrivare un Bestione e un Camminatore, oppure sei Camminatori;
@@ -173,7 +190,7 @@ Idee scartate per ora (potranno servire ad altri personaggi): Overclock (l'arma 
 
 💡 Ancora da decidere:
 - Cosa succede tra un'ondata e l'altra (pausa per spendere, macchinette, riparazioni).
-- Come si vince: un numero fisso di ondate, un'ondata finale con boss, oppure si resiste il più possibile.
+- Altri modi di vincere, oltre all'elicottero provvisorio.
 - ✅ Chi finisce la vita resta **a terra** e i compagni possono rianimarlo; chi non viene rianimato muore e rinasce a fine ondata. Se nessuno resta in piedi la run è persa (per ora si riparte subito; più avanti si tornerà alla lobby con qualche sblocco).
 - Più avanti: più mappe, o zone del Complesso collegate.
 

@@ -124,7 +124,7 @@ func set_max_health(value: float) -> void:
 	var new_current := minf(current + gained, value) if is_alive() else 0.0
 	_apply_max(value)
 	if NetSession.is_online():
-		_receive_max.rpc(value)
+		_rpc_to_all(&"_receive_max", [value])
 	_set_current(new_current)
 
 
@@ -149,7 +149,7 @@ func _set_current(value: float, dealt := 0.0, source: Node = null, hit_position 
 	_apply(value, dealt, source, hit_position)
 	if NetSession.is_online():
 		var source_path := source.get_path() if source and source.is_inside_tree() else NodePath()
-		_receive.rpc(value, dealt, source_path, hit_position)
+		_rpc_to_all(&"_receive", [value, dealt, source_path, hit_position])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -161,7 +161,7 @@ func _receive(value: float, dealt: float, source_path: NodePath, hit_position: V
 func _set_burning(on: bool) -> void:
 	_apply_burning(on)
 	if NetSession.is_online():
-		_receive_burning.rpc(on)
+		_rpc_to_all(&"_receive_burning", [on])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -192,3 +192,15 @@ func _apply(value: float, dealt: float, source: Node, hit_position: Vector3) -> 
 		if burning and is_multiplayer_authority():
 			_set_burning(false)
 		died.emit(source)
+
+
+## Manda la chiamata di rete a tutti quelli che hanno questo nodo. Se il padre
+## sa a chi arriva (net_peers_seeing: gli zombie, nelle mappe a zone, arrivano
+## solo ai giocatori vicini), solo a quelli: gli altri non hanno il nodo.
+func _rpc_to_all(method: StringName, args: Array) -> void:
+	var owner_node := get_parent()
+	if owner_node and owner_node.has_method("net_peers_seeing"):
+		for peer: int in owner_node.net_peers_seeing():
+			callv("rpc_id", [peer, method] + args)
+	else:
+		callv("rpc", [method] + args)

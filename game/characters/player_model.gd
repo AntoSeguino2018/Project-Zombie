@@ -85,6 +85,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_alive(local: Vector3, speed: float, delta: float) -> void:
+	# Seduti sull'elicottero: si muovono con lui ma stanno fermi.
+	if _player.is_boarded():
+		_air_time = 0.0
+		_play(&"Ferma", 1.0)
+		return
 	var in_air := not _player.is_on_floor() if _player.is_multiplayer_authority() \
 			else absf(local.y) > air_vertical_speed
 	_air_time = _air_time + delta if in_air else 0.0

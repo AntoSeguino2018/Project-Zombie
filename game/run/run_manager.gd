@@ -8,14 +8,21 @@ extends Node
 ## uno zombie ne prende la taglia (Enemy.bounty); a volte lo zombie lascia a
 ## terra un oggetto che può prendere chiunque.
 ##
-## Decide tutto l'host; gli altri ricevono quando la run è persa e quando
-## riparte (anche chi entra mentre il riepilogo è a schermo).
+## La run è vinta quando l'elicottero (Helicopter, sul tetto della torre del
+## campus) riparte con qualcuno a bordo: si mostra il riepilogo con chi si è
+## salvato e poi si riparte come dopo una run persa.
+##
+## Decide tutto l'host; gli altri ricevono quando la run è persa o vinta e
+## quando riparte (anche chi entra mentre il riepilogo è a schermo).
 
 signal run_lost(wave: int)
+signal run_won(wave: int)
 signal run_restarted
 
 ## Secondi di riepilogo prima di ripartire.
 @export var restart_delay := 8.0
+## Secondi di festa (riepilogo della vittoria) prima di ripartire.
+@export var win_restart_delay := 15.0
 ## Premio a ogni giocatore per un'ondata superata: base + per_wave × ondata.
 @export var wave_reward_base := 25
 @export var wave_reward_per_wave := 5
@@ -25,6 +32,11 @@ static var best_wave := 0
 
 var lost := false
 var lost_wave := 0
+## Vinta: l'elicottero è ripartito con qualcuno a bordo.
+var won := false
+var won_wave := 0
+## Nomi di chi è salito sull'elicottero.
+var escaped: Array[String] = []
 
 var _restart_left := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -40,7 +52,9 @@ func _ready() -> void:
 	if NetSession.is_online():
 		multiplayer.peer_connected.connect(func(id: int):
 			if lost:
-				_receive_lost.rpc_id(id, lost_wave, _restart_left))
+				_receive_lost.rpc_id(id, lost_wave, _restart_left)
+			elif won:
+				_receive_won.rpc_id(id, won_wave, escaped, _restart_left))
 
 
 ## La run del livello, o null se non c'è (es. scene di prova).
@@ -51,10 +65,15 @@ static func of(node: Node) -> RunManager:
 ## Vero se la run è in corso (o se non c'è una run).
 static func is_running(node: Node) -> bool:
 	var run := of(node)
-	return run == null or not run.lost
+	return run == null or not run.is_over()
 
 
-## Secondi alla ripartenza mentre la run è persa.
+## Persa o vinta: si aspetta la ripartenza.
+func is_over() -> bool:
+	return lost or won
+
+
+## Secondi alla ripartenza mentre la run è persa o vinta.
 func restart_seconds_left() -> float:
 	return maxf(_restart_left, 0.0)
 
@@ -73,7 +92,7 @@ func _exit_tree() -> void:
 ## Sull'host: la taglia dello zombie va a chi l'ha ucciso (con gli oggetti che
 ## la aumentano o che curano a ogni uccisione); a volte lascia un oggetto.
 func _on_enemy_killed(enemy: Node, killer: Node) -> void:
-	if not enemy is Enemy or lost:
+	if not enemy is Enemy or is_over():
 		return
 	if killer is FpsController:
 		var inventory: RunInventory = killer.inventory()
@@ -95,11 +114,11 @@ func _on_wave_cleared(wave: int) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if lost:
+	if is_over():
 		_restart_left -= delta
 	if not multiplayer.is_server():
 		return
-	if lost:
+	if is_over():
 		if _restart_left <= 0.0:
 			_host_restart()
 	elif _nobody_standing():
@@ -114,15 +133,17 @@ func _players() -> Array[FpsController]:
 	return result
 
 
+## Nessuno in piedi e nessuno a bordo dell'elicottero (chi è a bordo è salvo:
+## la run la chiude l'elicottero ripartendo).
 func _nobody_standing() -> bool:
 	var players := _players()
-	return not players.is_empty() and not players.any(func(p: FpsController): return p.is_standing())
+	return not players.is_empty() and not players.any(func(p: FpsController): return p.is_standing() or p.is_boarded())
 
 
 ## Sull'host, a fine ondata: chi è a terra si rialza, chi è morto rinasce
 ## accanto a un compagno in piedi.
 func _bring_back_fallen() -> void:
-	if lost:
+	if is_over():
 		return
 	var standing := _players().filter(func(p: FpsController): return p.is_standing())
 	for player in _players():
@@ -161,6 +182,36 @@ func _apply_lost(wave: int, restart_left: float) -> void:
 	run_lost.emit(wave)
 
 
+## Sull'host: la run è vinta, si sono salvati quelli in names.
+func host_win(names: Array[String]) -> void:
+	if is_over():
+		return
+	var waves := WaveDirector.of(self)
+	var wave := waves.wave if waves else 0
+	if waves:
+		waves.host_pause()
+	_apply_won(wave, names, win_restart_delay)
+	if NetSession.is_online():
+		_receive_won.rpc(wave, names, win_restart_delay)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_won(wave: int, names: Array, restart_left: float) -> void:
+	var typed: Array[String] = []
+	for n in names:
+		typed.append(str(n))
+	_apply_won(wave, typed, restart_left)
+
+
+func _apply_won(wave: int, names: Array[String], restart_left: float) -> void:
+	won = true
+	won_wave = wave
+	escaped = names
+	_restart_left = restart_left
+	best_wave = maxi(best_wave, wave)
+	run_won.emit(wave)
+
+
 ## Sull'host: tutto da capo. Le ondate prima degli zombie, così togliere gli
 ## zombie rimasti non conta come uccisioni dell'ondata.
 func _host_restart() -> void:
@@ -175,6 +226,12 @@ func _host_restart() -> void:
 		pickup.queue_free()
 	for crate in get_tree().get_nodes_in_group("weapon_crates"):
 		crate.host_reset()
+	for helicopter in get_tree().get_nodes_in_group("helicopters"):
+		helicopter.host_reset()
+	# Mappe a zone: porte di nuovo chiuse e aperte solo le zone di partenza.
+	var zones := ZoneManager.of(self)
+	if zones:
+		zones.host_reset()
 	for player in _players():
 		player.host_restart()
 	_apply_restarted()
@@ -189,5 +246,7 @@ func _receive_restarted() -> void:
 
 func _apply_restarted() -> void:
 	lost = false
+	won = false
+	escaped = []
 	_restart_left = 0.0
 	run_restarted.emit()

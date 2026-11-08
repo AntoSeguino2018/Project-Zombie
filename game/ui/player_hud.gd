@@ -8,7 +8,8 @@ extends CanvasLayer
 ## cosa si può fare con E, barra della rianimazione,
 ## direzione del danno, bordo rosso quando si subiscono danni (che resta acceso
 ## e pulsa con la vita bassa), comandi all'avvio, schermate di giocatore a
-## terra, morto e di run persa con il riepilogo. Con F3 mostra le statistiche
+## terra, morto, di run persa e di run vinta (elicottero) con il riepilogo;
+## accanto all'ondata, a che punto è l'elicottero. Con F3 mostra le statistiche
 ## delle prestazioni (FPS, fisica, zombie, detriti, cose a terra...).
 
 ## Sotto questa frazione di vita il bordo rosso resta acceso.
@@ -25,6 +26,7 @@ var _flash := 0.0
 var _time := 0.0
 var _waves: WaveDirector
 var _run: RunManager
+var _helicopter: Helicopter
 var _inventory: RunInventory
 var _gain_tween: Tween
 var _debug_left := 0.0
@@ -67,6 +69,9 @@ func _bind_waves() -> void:
 	_run = RunManager.of(self)
 	if _run:
 		_run.run_restarted.connect(hide_death)
+	_helicopter = Helicopter.of(self)
+	if _helicopter:
+		_helicopter.state_changed.connect(_on_helicopter_changed)
 	_waves = WaveDirector.of(self)
 	if _waves == null:
 		return
@@ -219,11 +224,14 @@ func _show_revive_bar(progress: float) -> void:
 
 
 func _run_is_lost() -> bool:
-	return is_instance_valid(_run) and _run.lost
+	return is_instance_valid(_run) and _run.is_over()
 
 
 func _update_run_lost() -> void:
 	if not _run_is_lost():
+		return
+	if _run.won:
+		_update_run_won()
 		return
 	_death_label.visible = true
 	_set_alive_widgets(false)
@@ -237,6 +245,29 @@ func _update_run_lost() -> void:
 
 Si riparte tra %d" % [
 			reached, player.kills() if player else 0, record, maxi(ceili(_run.restart_seconds_left()), 1)]
+
+
+## Riepilogo della vittoria: chi si è salvato e le statistiche della run.
+func _update_run_won() -> void:
+	_death_label.visible = true
+	_set_alive_widgets(false)
+	_show_revive_bar(0.0)
+	var player := get_parent() as FpsController
+	var saved := ", ".join(_run.escaped) if not _run.escaped.is_empty() else "nessuno"
+	var reached := "Ondata %d" % _run.won_wave if _run.won_wave > 0 else "Prima della prima ondata"
+	_death_label.text = "SIETE TORNATI A CASA!
+Salvati: %s
+%s  ·  %d uccisioni  ·  %s
+
+Si riparte tra %d" % [saved, reached, player.kills() if player else 0,
+			format_time(player.run_time() if player else 0.0), maxi(ceili(_run.restart_seconds_left()), 1)]
+
+
+func _on_helicopter_changed() -> void:
+	if _helicopter.phase == Helicopter.Phase.INCOMING:
+		_show_banner("Elicottero chiamato!")
+	elif _helicopter.phase == Helicopter.Phase.LANDED:
+		_show_banner("L'elicottero è sul tetto!")
 
 
 static func format_time(seconds: float) -> String:
@@ -275,6 +306,9 @@ func _update_wave_label() -> void:
 		_wave_label.text = "Ondata %d   ·   %d zombie" % [_waves.wave, _waves.remaining]
 	else:
 		_wave_label.text = "Ondata %d tra %d" % [_waves.wave + 1, ceili(_waves.seconds_to_next_wave())]
+	var helicopter_text := _helicopter.status_text() if is_instance_valid(_helicopter) else ""
+	if not helicopter_text.is_empty():
+		_wave_label.text += "   ·   " + helicopter_text
 
 
 func _unhandled_input(event: InputEvent) -> void:

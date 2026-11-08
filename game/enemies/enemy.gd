@@ -14,6 +14,8 @@ enum State { CHASE, ATTACK, STUNNED, LAUNCHED, DEAD }
 
 const LAYER_WORLD := 1
 const LAYER_PLAYERS := 2
+## Ogni quanti secondi l'host ricontrolla a chi arriva lo zombie in rete (mappe a zone).
+const RELEVANCE_INTERVAL := 0.5
 
 @export_group("Movimento")
 ## Velocità di corsa, in m/s.
@@ -85,6 +87,11 @@ var _flash := StandardMaterial3D.new()
 var _stuck_time := 0.0
 var _unstick_left := 0.0
 var _unstick_direction := Vector3.ZERO
+var _net_sync: MultiplayerSynchronizer
+var _relevance_left := 0.0
+## Mappe a zone: lo zombie arriva in rete solo a chi è vicino (_seen_by[peer]).
+var _filtered := false
+var _seen_by := {}
 
 @onready var _health: HealthComponent = $Health
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -132,6 +139,12 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_after_move(velocity_before_move)
 	_publish_state()
+	_relevance_left -= delta
+	if _relevance_left <= 0.0 and _net_sync and NetSession.is_online():
+		_relevance_left = RELEVANCE_INTERVAL
+		# Un partecipante alla volta: con 0 ("tutti") il filtro riceve solo lo 0.
+		for peer in multiplayer.get_peers():
+			_net_sync.update_visibility(peer)
 
 
 ## Scrive lo stato che l'host manda agli altri partecipanti.
@@ -172,7 +185,34 @@ func _add_net_sync() -> void:
 	net_sync.replication_config = config
 	net_sync.replication_interval = 1.0 / sync_rate
 	net_sync.delta_interval = 1.0 / sync_rate
+	if multiplayer.is_server() and ZoneManager.of(self):
+		# Mappa a zone: lo zombie arriva solo a chi è abbastanza vicino. Chi non lo
+		# vede più se lo vede sparire; tornando vicino ricompare (MultiplayerSpawner).
+		net_sync.visibility_update_mode = MultiplayerSynchronizer.VISIBILITY_PROCESS_NONE
+		net_sync.add_visibility_filter(_is_relevant_to)
+		_filtered = true
 	add_child(net_sync)
+	_net_sync = net_sync
+
+
+## I partecipanti a cui arriva questo zombie (tutti, se la mappa non ha zone).
+## Le chiamate di rete sui suoi nodi vanno solo a loro: gli altri non ce l'hanno.
+func net_peers_seeing() -> Array[int]:
+	var result: Array[int] = []
+	for peer in multiplayer.get_peers():
+		if not _filtered or _seen_by.get(peer, false):
+			result.append(peer)
+	return result
+
+
+## Filtro di visibilità del MultiplayerSynchronizer: lo chiama la rete quando
+## ricalcola a chi arriva lo zombie. Si ricorda la risposta, così le chiamate
+## di rete seguono esattamente la stessa scelta (vedi net_peers_seeing).
+func _is_relevant_to(peer: int) -> bool:
+	var zones := ZoneManager.of(self)
+	var relevant := zones == null or zones.is_relevant(peer, global_position)
+	_seen_by[peer] = relevant
+	return relevant
 
 
 func is_attacking() -> bool:
@@ -372,7 +412,9 @@ func _take_impact_damage(amount: float, source: Node, at: Vector3) -> void:
 	# Il numero lo vede chi ha lanciato lo zombie, come per i suoi colpi.
 	var killed := not _health.is_alive()
 	if source and not source.is_multiplayer_authority():
-		_show_damage_number.rpc_id(source.get_multiplayer_authority(), dealt, at, killed)
+		var peer := source.get_multiplayer_authority()
+		if net_peers_seeing().has(peer):
+			_show_damage_number.rpc_id(peer, dealt, at, killed)
 	else:
 		_show_damage_number(dealt, at, killed)
 
@@ -392,6 +434,9 @@ func _find_target() -> Node3D:
 	for player: Node3D in get_tree().get_nodes_in_group("players"):
 		var health := HealthComponent.of(player)
 		if health == null or not health.is_alive():
+			continue
+		# Chi è sull'elicottero è salvo.
+		if player.has_method("is_boarded") and player.is_boarded():
 			continue
 		var distance := global_position.distance_squared_to(player.global_position)
 		if distance < best_distance:

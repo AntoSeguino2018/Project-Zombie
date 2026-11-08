@@ -115,6 +115,9 @@ var _progress_send_left := 0.0
 ## Da 0 (vivo) a 1 (visuale a terra): fa crollare la camera quando si va giù.
 var _death_blend := 0.0
 var _name_tag_height := 0.0
+## Posto sull'elicottero (null = non a bordo): chi è a bordo ci resta seduto,
+## non spara e gli zombie lo ignorano. Lo decide l'host.
+var _seat: Node3D
 var _name_tag_tween: Tween
 ## Oggetto interagibile guardato in questo momento (null = nessuno).
 var _interact_target: Node
@@ -228,6 +231,9 @@ func _physics_process(delta: float) -> void:
 		_run_time += delta
 	_hud.update_stats(_kills, _run_time)
 	_hud.update_revive(self)
+	if is_boarded():
+		_ride()
+		return
 	if life != Life.ALIVE:
 		_physics_process_down(delta)
 		_publish_state()
@@ -288,6 +294,40 @@ func melee_multiplier() -> float:
 ## Vero se è in piedi (vivo e non a terra).
 func is_standing() -> bool:
 	return life == Life.ALIVE
+
+
+## A bordo dell'elicottero.
+func is_boarded() -> bool:
+	return is_instance_valid(_seat)
+
+
+## Sull'host: il giocatore sale sull'elicottero al posto seat (null = scende).
+func host_board(seat: Node3D) -> void:
+	_apply_board(seat)
+	if NetSession.is_online():
+		_receive_board.rpc(seat.get_path() if seat else NodePath())
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_board(seat_path: NodePath) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_apply_board(get_node_or_null(seat_path) as Node3D if not seat_path.is_empty() else null)
+
+
+func _apply_board(seat: Node3D) -> void:
+	_seat = seat
+	if is_multiplayer_authority():
+		_weapon.visible = seat == null and life == Life.ALIVE
+		_hud.show_prompt("")
+
+
+## Chi controlla il giocatore lo tiene seduto al suo posto (si muove con
+## l'elicottero) e si può solo guardare intorno.
+func _ride() -> void:
+	rotation.y = _yaw
+	velocity = Vector3.ZERO
+	global_position = _seat.global_position
+	_publish_state()
 
 
 ## Sull'host, per ogni giocatore: chi cade fuori dal livello muore; chi sta
@@ -366,6 +406,7 @@ func host_respawn(at: Vector3) -> void:
 
 ## Sull'host, a inizio run: vita piena, punto di partenza, solo la pistola.
 func host_restart() -> void:
+	host_board(null)
 	# Prima l'inventario: chi si rialza deve già avere i caricatori senza oggetti.
 	_inventory.host_reset()
 	_health.reset()
@@ -634,6 +675,11 @@ func _on_enemy_killed(_enemy: Node, killer: Node) -> void:
 ## Uccisioni nella run in corso.
 func kills() -> int:
 	return _kills
+
+
+## Secondi di gioco della run in corso.
+func run_time() -> float:
+	return _run_time
 
 
 ## Finita la vita: lo stato (a terra o morto) lo decide l'host e arriva a tutti.

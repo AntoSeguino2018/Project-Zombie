@@ -10,8 +10,8 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 
 - **Cos'è:** FPS roguelike in prima persona, co-op online da 1 a 4 giocatori, contro orde di zombie colorati e per niente cupi. **Le armi sono le protagoniste.**
 - **Stile visivo:** low-poly alla *Deep Rock Galactic*: forme grosse e leggibili, flat shading, luci colorate, colori forti solo su ciò che conta (nemici, armi, oggetti). Oggi è tutto in greybox (cubi e capsule).
-- **Identità:** nasce dal gruppo universitario dello sviluppatore (persone, aule studio, coffee break, meme). **Nel gioco non ci sono riferimenti espliciti all'università:** le battute sono il "DNA" nascosto di armi, nemici, nomi. La lobby futura sarà un'aula studio; le macchinette del caffè danno i boost.
-- **Mondo:** "il Complesso", stanze gialle alte e corridoi tipo backrooms, ma con tono caciarone, non inquietante.
+- **Identità e storia:** nasce dal gruppo universitario dello sviluppatore (persone, aule studio, coffee break, meme). Dall'8 novembre 2026 c'è una storia: studenti di ingegneria bloccati all'università durante un'apocalisse zombie, che sopravvivono con le armi e i progetti segreti del campus fatti con l'esercito (da qui le armi assurde). L'università si vede ma con **nomi storpiati** ("Monte Sant'Arcangelo", "Federico III"). Le macchinette del caffè danno i boost.
+- **Mondo:** il campus di Monte Sant'Arcangelo (dal passo 3.7), diviso in zone che si aprono a pagamento; tono caciarone, non inquietante.
 - **Pilastri:** 1) le armi prima di tutto (comuni → truccate → sbroccate), 2) zombie mai visti, ognuno con un comportamento riconoscibile, 3) caos co-op leggero.
 - **Struttura della run (attuale):** una sola mappa grande, ondate con budget di pericolosità crescente, soldi personali, oggetti passivi impilabili, giocatori a terra rianimabili, run persa se cadono tutti.
 - **Ancora da decidere (lo sviluppatore vuole prima definire meglio il gameplay):** come si vince la run (ondate fisse, boss, resistenza), cosa succede tra le ondate, natura degli zombie, armi sbroccate (attendono i meme del gruppo). Idea in esplorazione: **mappa immensa con strutture pensate per la distruttibilità** (vedi §8).
@@ -80,7 +80,7 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
   - Dieci oggetti, ognuno con una statistica e un aumento per copia; le copie si sommano.
   - Si trovano: uno a testa a fine ondata, e lasciati dagli zombie (Bestione sempre). Si perdono alla ripartenza.
   - **F3** mostra le statistiche delle prestazioni.
-- **3.6 Il Complesso** (`game/levels/complex.tscn`, generato da `tools/build_complex.py`):
+- **3.6 Il Complesso** (sostituito dal campus al passo 3.7, resta per i test) (`game/levels/complex.tscn`, generato da `tools/build_complex.py`):
   - Mappa di circa 112 × 76 m in greybox a cielo aperto, con sette zone: Atrio (partenza), Aula studio, Cortile, Corridoio, Archivio, Sala alta con soppalco, Magazzino con piattaforma.
   - 6 casse, 7 macchinette, 15 punti di comparsa.
   - Zombie con anti-incastro (scivolano di lato se non avanzano).
@@ -93,10 +93,20 @@ Aggiornato al 2 novembre 2026: passo 3.6 più la Magnum, prima arma sbroccata, m
 
   Dettagli e difetti aperti in [`docs/armi/magnum.md`](docs/armi/magnum.md).
 
+- **3.7 Il campus di Monte Sant'Arcangelo** (`game/levels/campus.tscn`, generato da `tools/build_campus.py`, scheda in [`docs/mappa/campus.md`](docs/mappa/campus.md)):
+  - circa 230 × 180 m, 11 zone; si parte nell'aula studio sotterranea;
+  - 12 porte a pagamento (`ZoneDoor`, da 250 a 1.500 €) aprono le zone (`ZoneManager`, `MapZone` in `game/levels/zones/`);
+  - le zone sono i chunk: ondate solo vicino ai giocatori, zombie lontani rimessi in coda, e in rete ogni zombie arriva solo a chi è vicino (filtro di visibilità del `MultiplayerSynchronizer`; le chiamate sulla vita passano da `net_peers_seeing`).
+
+- **3.8 Fine della run con l'elicottero** (`game/levels/props/helicopter.gd`, provvisoria):
+  - sul tetto della torre del campus, la radio dell'esercito raccoglie i soldi di tutti (500 € alla volta, fino a 5.000 €);
+  - poi si resiste 60 secondi, l'elicottero atterra e si sale con E (`FpsController.host_board`: si resta seduti e gli zombie ignorano chi è a bordo);
+  - quando riparte, `RunManager.host_win` chiude la run con il riepilogo (salvati, ondata, uccisioni, tempo) e si riparte da capo.
+
 ## 5. Prossimi passi (da ROADMAP)
 
-- **Prima di altro gameplay:** definire meglio il gameplay con lo sviluppatore (come si vince, cosa succede tra le ondate, ruolo della distruzione, mappa immensa sì/no). Proposta: una sessione di design a domande, con alternative, e decisioni scritte in DESIGN.md prima di altro codice.
-- **3.7** fine della run e schermata con le statistiche; **3.8** playtest della run completa.
+- **3.9** armi bianche nel terzo slot (martello, martellone, katana); **3.10** proiettili da carro armato e razzo a martellate; **3.11** playtest della run completa.
+- Ancora da decidere con lo sviluppatore: cosa succede tra le ondate, ruolo della distruzione, altri modi di vincere.
 - **2.5** prova con 4 istanze e con amici su internet; **2.6** Steam (lobby, inviti).
 - **Fase 4** personaggi (4 slot abilità più passiva). **Fase 5** grafica vera.
 

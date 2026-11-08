@@ -7,6 +7,11 @@ extends Node3D
 ## che nessun giocatore sta guardando. L'ondata finisce quando sono morti tutti;
 ## dopo una pausa parte la successiva.
 ##
+## Nelle mappe divise in zone (ZoneManager) si usano solo i punti delle zone
+## aperte dove ci sono i giocatori o accanto, e gli zombie rimasti lontani da
+## tutti tornano in coda per rinascere vicino: così si lavora su poche zone alla
+## volta anche in una mappa grande.
+##
 ## Decide tutto l'host; gli altri ricevono numero dell'ondata, fase, zombie
 ## rimasti e secondi alla prossima (anche chi entra a partita iniziata).
 
@@ -58,6 +63,12 @@ const LAYER_WORLD := 1
 ## Si sceglie a caso tra questi punti validi, i più vicini ai giocatori.
 @export var nearest_choices := 3
 
+@export_group("Zone")
+## Uno zombie fuori dalle zone dei giocatori e più lontano di così da tutti...
+@export var recycle_distance := 50.0
+## ...per questi secondi di fila torna in coda e rinasce vicino ai giocatori.
+@export var recycle_time := 6.0
+
 var wave := 0
 var phase := Phase.WAITING
 ## Zombie dell'ondata ancora da uccidere (in campo e in arrivo).
@@ -68,6 +79,11 @@ var _spawn_left := 0.0
 var _queue: Array[WaveEnemy] = []
 var _alive: Array[Node] = []
 var _rng := RandomNumberGenerator.new()
+## Tipo di ogni zombie in campo (per id dell'istanza), per rimetterlo in coda.
+var _types := {}
+## Secondi passati lontano da tutti, per id dell'istanza.
+var _far_time := {}
+var _recycle_check_left := 0.0
 
 
 func _ready() -> void:
@@ -99,6 +115,8 @@ func host_restart() -> void:
 	_time_left = start_delay
 	_queue.clear()
 	_alive.clear()
+	_types.clear()
+	_far_time.clear()
 	set_physics_process(true)
 	_publish()
 
@@ -146,6 +164,10 @@ func _physics_process(delta: float) -> void:
 			if _spawn_left <= 0.0 and not _queue.is_empty() and _alive.size() < _alive_cap():
 				_spawn_left = spawn_interval
 				_spawn(_queue.pop_front())
+			_recycle_check_left -= delta
+			if _recycle_check_left <= 0.0:
+				_recycle_far_enemies(1.0 - _recycle_check_left)
+				_recycle_check_left = 1.0
 
 
 func _start_wave() -> void:
@@ -187,6 +209,7 @@ func _spawn(enemy_type: WaveEnemy) -> void:
 		_on_enemy_gone(null)
 		return
 	_alive.append(enemy)
+	_types[enemy.get_instance_id()] = enemy_type
 	HealthComponent.of(enemy).died.connect(func(_source): _on_enemy_gone(enemy), CONNECT_ONE_SHOT)
 	# Se sparisce senza morire (es. livello chiuso) non blocca l'ondata.
 	enemy.tree_exiting.connect(func(): if _alive.has(enemy): _on_enemy_gone(enemy), CONNECT_ONE_SHOT)
@@ -198,6 +221,8 @@ func _on_enemy_gone(enemy: Node) -> void:
 		return
 	if enemy:
 		_alive.erase(enemy)
+		_types.erase(enemy.get_instance_id())
+		_far_time.erase(enemy.get_instance_id())
 	remaining = maxi(remaining - 1, 0)
 	if remaining == 0 and phase == Phase.ACTIVE:
 		phase = Phase.BREAK
@@ -212,11 +237,8 @@ func _on_enemy_gone(enemy: Node) -> void:
 ## validi, uno a caso dei più vicini, così gli zombie arrivano presto. Se non ce
 ## ne sono, il più lontano da tutti.
 func _pick_spawn_point() -> Marker3D:
-	var points: Array[Marker3D] = []
-	for child in get_children():
-		if child is Marker3D:
-			points.append(child)
 	var players := _living_players()
+	var points := _usable_points(players)
 	if players.is_empty():
 		return points[_rng.randi() % points.size()]
 	var valid: Array = []
@@ -233,6 +255,56 @@ func _pick_spawn_point() -> Marker3D:
 		return farthest
 	valid.sort_custom(func(a, b): return a[0] < b[0])
 	return valid[_rng.randi() % mini(nearest_choices, valid.size())][1]
+
+
+## I punti di comparsa utilizzabili: tutti, oppure, nelle mappe a zone, quelli
+## delle zone aperte vicine ai giocatori (se non ce n'è nessuno, quelli delle
+## zone aperte).
+func _usable_points(players: Array[Node3D]) -> Array[Marker3D]:
+	var points: Array[Marker3D] = []
+	for child in get_children():
+		if child is Marker3D:
+			points.append(child)
+	var zones := ZoneManager.of(self)
+	if zones == null:
+		return points
+	var near := zones.spawn_zones(players)
+	var open: Array[Marker3D] = []
+	var close: Array[Marker3D] = []
+	for point in points:
+		var zone := zones.zone_at(point.global_position)
+		if zone == null or not zone.unlocked:
+			continue
+		open.append(point)
+		if near.has(zone):
+			close.append(point)
+	if not close.is_empty():
+		return close
+	return open if not open.is_empty() else points
+
+
+## Sull'host, nelle mappe a zone: gli zombie fuori dalle zone dei giocatori e
+## lontani da tutti per recycle_time secondi spariscono e tornano in coda, così
+## rinascono dove si gioca invece di attraversare mezza mappa.
+func _recycle_far_enemies(elapsed: float) -> void:
+	var zones := ZoneManager.of(self)
+	var players := _living_players()
+	if zones == null or players.is_empty():
+		return
+	var near := zones.spawn_zones(players)
+	for enemy in _alive.duplicate():
+		if not is_instance_valid(enemy) or not HealthComponent.of(enemy).is_alive():
+			continue
+		var id: int = enemy.get_instance_id()
+		var zone := zones.zone_at(enemy.global_position)
+		var far := not near.has(zone) and _distance_to_nearest(enemy.global_position, players) > recycle_distance
+		_far_time[id] = (_far_time.get(id, 0.0) + elapsed) if far else 0.0
+		if _far_time[id] >= recycle_time and _types.has(id):
+			_queue.push_front(_types[id])
+			_alive.erase(enemy)
+			_types.erase(id)
+			_far_time.erase(id)
+			enemy.queue_free()
 
 
 ## Vero se il giocatore potrebbe vedere qualcosa che compare in at.

@@ -1,9 +1,10 @@
 extends Control
 ## Menu iniziale: giocare da soli, ospitare una partita o entrare in quella di
-## un amico con il suo indirizzo IP. Si gioca nel Complesso; il poligono di
-## prova (il vecchio livello con manichini e rampe) è solo da soli.
+## un amico con il suo indirizzo IP. Si gioca nel campus di Monte Sant'Arcangelo
+## (dal passo 4.1; il vecchio Complesso resta in game/levels per i test); il
+## poligono di prova (manichini e rampe) è solo da soli.
 
-const LEVEL_SCENE := "res://game/levels/complex.tscn"
+const LEVEL_SCENE := "res://game/levels/campus.tscn"
 const TRAINING_SCENE := "res://game/levels/test_level.tscn"
 
 @onready var _address: LineEdit = %Address

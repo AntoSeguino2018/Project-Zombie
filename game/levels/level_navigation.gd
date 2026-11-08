@@ -6,7 +6,8 @@ extends NavigationRegion3D
 ## ricalcola in background: gli zombie passano dai buchi nuovi.
 ##
 ## La geometria si legge dai nodi del gruppo indicato dalla NavigationMesh:
-## forme CSG con collisione e strutture distruttibili (solo i blocchi in piedi).
+## forme CSG con collisione, strutture distruttibili (solo i blocchi in piedi)
+## e porte a pagamento chiuse (aprendole la mappa si ricalcola).
 ## Si usano le collisioni e non le mesh visive, che a runtime andrebbero rilette
 ## dalla scheda video. Quando arriveranno i livelli modellati in Blender si
 ## aggiungeranno qui le loro collisioni.
@@ -82,7 +83,8 @@ func _collect_geometry() -> NavigationMeshSourceGeometryData3D:
 
 
 func _add_geometry(node: Node, source: NavigationMeshSourceGeometryData3D) -> void:
-	if node is DestructibleBlocks:
+	# Strutture distruttibili (solo i blocchi in piedi) e porte a pagamento (solo chiuse).
+	if node.has_method("add_navigation_geometry"):
 		node.add_navigation_geometry(source)
 		return
 	if node is CSGShape3D and node.is_root_shape():
